@@ -1,8 +1,9 @@
 {
-  "domain": "sensor_custom",
+  "domain": "cgm_monitor",
   "name": "CGM Monitor",
   "after_dependencies": ["recorder"],
   "codeowners": [],
   "documentation": "https://github.com/BettyInnovates/ha-cgm-monitor/",
-  "iot_class": "calculated"
+  "iot_class": "calculated",
+  "version": "0.1.0"
 }
