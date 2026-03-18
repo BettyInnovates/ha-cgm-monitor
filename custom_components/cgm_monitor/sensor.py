@@ -9,7 +9,6 @@ from homeassistant.const import (
     ATTR_UNIT_OF_MEASUREMENT,
     CONF_NAME,
     STATE_OK,
-    STATE_PROBLEM,
     STATE_UNAVAILABLE,
     STATE_UNKNOWN,
 )
@@ -24,15 +23,26 @@ from .const import (
     ATTR_DICT_OF_UNITS_OF_MEASUREMENT,
     ATTR_PROBLEM,
     ATTR_SENSORS,
+    CONF_CRITICAL_LOW_THRESHOLD,
     CONF_GLUCOSE_SENSOR,
+    CONF_HIGH_THRESHOLD,
+    CONF_LOW_THRESHOLD,
     CONF_TREND_SENSOR,
-    CONF_WARNING_HIGH,
-    CONF_WARNING_LOW,
-    DEFAULT_WARNING_HIGH,
-    DEFAULT_WARNING_LOW,
+    CONF_VERY_HIGH_THRESHOLD,
+    CONF_VERY_LOW_THRESHOLD,
+    DEFAULT_CRITICAL_LOW_THRESHOLD,
+    DEFAULT_HIGH_THRESHOLD,
+    DEFAULT_LOW_THRESHOLD,
+    DEFAULT_VERY_HIGH_THRESHOLD,
+    DEFAULT_VERY_LOW_THRESHOLD,
     PROBLEM_NONE,
     READING_GLUCOSE,
     READING_TREND,
+    STATE_CRITICAL_LOW,
+    STATE_HIGH,
+    STATE_VERY_HIGH,
+    STATE_VERY_LOW,
+    STATE_WARNING,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -42,8 +52,11 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
         vol.Required(CONF_NAME): cv.string,
         vol.Required(CONF_GLUCOSE_SENSOR): cv.entity_id,
         vol.Optional(CONF_TREND_SENSOR): cv.entity_id,
-        vol.Optional(CONF_WARNING_HIGH, default=DEFAULT_WARNING_HIGH): vol.Coerce(float),
-        vol.Optional(CONF_WARNING_LOW, default=DEFAULT_WARNING_LOW): vol.Coerce(float),
+        vol.Optional(CONF_CRITICAL_LOW_THRESHOLD, default=DEFAULT_CRITICAL_LOW_THRESHOLD): vol.Coerce(float),
+        vol.Optional(CONF_VERY_LOW_THRESHOLD, default=DEFAULT_VERY_LOW_THRESHOLD): vol.Coerce(float),
+        vol.Optional(CONF_LOW_THRESHOLD, default=DEFAULT_LOW_THRESHOLD): vol.Coerce(float),
+        vol.Optional(CONF_HIGH_THRESHOLD, default=DEFAULT_HIGH_THRESHOLD): vol.Coerce(float),
+        vol.Optional(CONF_VERY_HIGH_THRESHOLD, default=DEFAULT_VERY_HIGH_THRESHOLD): vol.Coerce(float),
     }
 )
 
@@ -120,25 +133,37 @@ class CgmMonitor(SensorEntity):
 
     def _update_state(self) -> None:
         """Update entity state based on current readings."""
-        result = []
-
         if self._glucose is not None:
             if self._glucose == STATE_UNAVAILABLE:
-                result.append("glucose unavailable")
+                self._state = STATE_UNAVAILABLE
+                self._problems = "glucose unavailable"
+                _LOGGER.debug("New data processed")
+                self.async_write_ha_state()
+                return
             else:
-                warning_low = self._config[CONF_WARNING_LOW]
-                warning_high = self._config[CONF_WARNING_HIGH]
-                if self._glucose < warning_low:
-                    result.append("glucose low")
-                elif self._glucose > warning_high:
-                    result.append("glucose high")
+                critical_low = self._config[CONF_CRITICAL_LOW_THRESHOLD]
+                very_low = self._config[CONF_VERY_LOW_THRESHOLD]
+                low = self._config[CONF_LOW_THRESHOLD]
+                high = self._config[CONF_HIGH_THRESHOLD]
+                very_high = self._config[CONF_VERY_HIGH_THRESHOLD]
 
-        if result:
-            self._state = STATE_PROBLEM
-            self._problems = ", ".join(result)
-        else:
-            self._state = STATE_OK
+                if self._glucose < critical_low:
+                    self._state = STATE_CRITICAL_LOW
+                elif self._glucose < very_low:
+                    self._state = STATE_VERY_LOW
+                elif self._glucose < low:
+                    self._state = STATE_WARNING
+                elif self._glucose > very_high:
+                    self._state = STATE_VERY_HIGH
+                elif self._glucose > high:
+                    self._state = STATE_HIGH
+                else:
+                    self._state = STATE_OK
+
+        if self._state in (STATE_OK, None):
             self._problems = PROBLEM_NONE
+        else:
+            self._problems = self._state
 
         _LOGGER.debug("New data processed")
         self.async_write_ha_state()
