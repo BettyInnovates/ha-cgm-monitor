@@ -10,8 +10,12 @@ sections:
         type: grid
         cards:
           - type: custom:button-card
+            template: cgm_priority
             entity: sensor.cgm_subject_2
             show_name: true
+          - type: custom:button-card
+            entity: sensor.cgm_subject_2
+            show_name: false
             template: cgm_state_badge
             section_mode: true
           - type: custom:button-card
@@ -24,7 +28,7 @@ sections:
             show_name: true
             template: cgm_trend
             section_mode: true
-        columns: 4
+        columns: 5
         grid_options:
           columns: full
     column_span: 4
@@ -80,7 +84,7 @@ sections:
                 fill_raw: last
                 extend_to: now
                 yaxis_id: glucose
-              - entity: number.cgm_subject_1_critical_low_threshold
+              - entity: number.cgm_subject_2_critical_low_threshold
                 name: Critical Low
                 color: "#FF0000"
                 curve: straight
@@ -90,7 +94,7 @@ sections:
                   legend_value: true
                   in_header: false
                   datalabels: false
-              - entity: number.cgm_subject_1_very_low_threshold
+              - entity: number.cgm_subject_2_very_low_threshold
                 name: Very Low
                 color: "#e53935"
                 stroke_width: 1.5
@@ -101,7 +105,7 @@ sections:
                   legend_value: true
                   in_header: false
                   datalabels: false
-              - entity: number.cgm_subject_1_low_threshold
+              - entity: number.cgm_subject_2_low_threshold
                 name: Low
                 color: "#fb8c00"
                 stroke_width: 1.5
@@ -111,7 +115,7 @@ sections:
                   legend_value: true
                   in_header: false
                   datalabels: false
-              - entity: number.cgm_subject_1_high_threshold
+              - entity: number.cgm_subject_2_high_threshold
                 name: High
                 color: "#fb8c00"
                 stroke_width: 1.5
@@ -122,7 +126,7 @@ sections:
                   legend_value: true
                   in_header: false
                   datalabels: false
-              - entity: number.cgm_subject_1_very_high_threshold
+              - entity: number.cgm_subject_2_very_high_threshold
                 name: Very High
                 color: "#e53935"
                 stroke_width: 1.5
@@ -145,19 +149,19 @@ sections:
           - type: entities
             title: Threshold Controls
             entities:
-              - entity: number.cgm_subject_1_critical_low_threshold
+              - entity: number.cgm_subject_2_critical_low_threshold
                 name: Critical Low
                 icon: mdi:arrow-collapse-down
-              - entity: number.cgm_subject_1_very_low_threshold
+              - entity: number.cgm_subject_2_very_low_threshold
                 name: Very Low
                 icon: mdi:arrow-down
-              - entity: number.cgm_subject_1_low_threshold
+              - entity: number.cgm_subject_2_low_threshold
                 name: Low
                 icon: mdi:arrow-bottom-right
-              - entity: number.cgm_subject_1_high_threshold
+              - entity: number.cgm_subject_2_high_threshold
                 name: High
                 icon: mdi:arrow-top-right
-              - entity: number.cgm_subject_1_very_high_threshold
+              - entity: number.cgm_subject_2_very_high_threshold
                 name: Very High
                 icon: mdi:arrow-up
         columns: 1
@@ -169,3 +173,4 @@ header:
     type: markdown
     text_only: true
     content: "# CGM Subject 2"
+cards: []

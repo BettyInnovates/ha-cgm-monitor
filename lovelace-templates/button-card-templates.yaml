@@ -152,6 +152,7 @@ cgm_state_badge:
 #   entity: sensor.cgm_subject_1
 cgm_priority:
   template: cgm_state
+  name: Priority
   show_name: false
   show_label: false
   show_state: false
