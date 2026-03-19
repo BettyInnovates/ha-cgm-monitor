@@ -1,16 +1,253 @@
-type: custom:vertical-stack-in-card
+type: sections
+max_columns: 4
 title: Overview
-path: overview
-cards:
-  - type: entities
-    entities:
-      - entity: sensor.cgm_subject_1
-      - entity: sensor.cgm_subject_2
-      - entity: sensor.cgm_subject_3
-      - entity: sensor.cgm_subject_4
-      - entity: sensor.cgm_subject_5
-      - entity: sensor.cgm_subject_6
-      - entity: sensor.cgm_subject_7
-      - entity: sensor.cgm_subject_8
-    title: Subjects
+path: sandbox
+sections:
+  - type: grid
+    cards:
+      - type: markdown
+        content: "# Cohort 1"
+        text_only: true
+      - square: false
+        type: grid
+        cards:
+          - type: custom:button-card
+            entity: ""
+            template: cgm_subject_label
+            section_mode: true
+            name: "Subject 1"
+            tap_action:
+              action: navigate
+              navigation_path: /cgm-monitor/cgm-subject-1
+          - type: custom:button-card
+            template: cgm_glucose
+            entity: sensor.cgm_subject_1
+            tap_action:
+              action: navigate
+              navigation_path: /cgm-monitor/cgm-subject-1
+          - type: custom:button-card
+            template: cgm_trend
+            entity: sensor.cgm_subject_1
+          - type: custom:button-card
+            template: cgm_state_badge
+            entity: sensor.cgm_subject_1
+        columns: 4
+        grid_options:
+          columns: 48
+          rows: auto
+    column_span: 4
+  - type: grid
+    cards:
+      - square: false
+        type: grid
+        cards:
+          - type: custom:button-card
+            entity: ""
+            template: cgm_subject_label
+            section_mode: true
+            name: "Subject 2"
+            tap_action:
+              action: navigate
+              navigation_path: /cgm-monitor/cgm-subject-2
+          - type: custom:button-card
+            template: cgm_glucose
+            entity: sensor.cgm_subject_2
+            tap_action:
+              action: navigate
+              navigation_path: /cgm-monitor/cgm-subject-2
+          - type: custom:button-card
+            template: cgm_trend
+            entity: sensor.cgm_subject_2
+          - type: custom:button-card
+            template: cgm_state_badge
+            entity: sensor.cgm_subject_2
+        columns: 4
+        grid_options:
+          columns: 48
+          rows: auto
+    column_span: 4
+  - type: grid
+    cards:
+      - type: markdown
+        content: "# Cohort 2"
+        text_only: true
+      - square: false
+        type: grid
+        cards:
+          - type: custom:button-card
+            entity: ""
+            template: cgm_subject_label
+            section_mode: true
+            name: "Subject 3"
+            tap_action:
+              action: navigate
+              navigation_path: /cgm-monitor/cgm-subject-3
+          - type: custom:button-card
+            template: cgm_glucose
+            entity: sensor.cgm_subject_3
+            tap_action:
+              action: navigate
+              navigation_path: /cgm-monitor/cgm-subject-3
+          - type: custom:button-card
+            template: cgm_trend
+            entity: sensor.cgm_subject_3
+          - type: custom:button-card
+            template: cgm_state_badge
+            entity: sensor.cgm_subject_3
+        columns: 4
+        grid_options:
+          columns: 48
+          rows: auto
+    column_span: 4
+  - type: grid
+    cards:
+      - square: false
+        type: grid
+        cards:
+          - type: custom:button-card
+            entity: ""
+            template: cgm_subject_label
+            section_mode: true
+            name: "Subject 4"
+            tap_action:
+              action: navigate
+              navigation_path: /cgm-monitor/cgm-subject-4
+          - type: custom:button-card
+            template: cgm_glucose
+            entity: sensor.cgm_subject_4
+            tap_action:
+              action: navigate
+              navigation_path: /cgm-monitor/cgm-subject-4
+          - type: custom:button-card
+            template: cgm_trend
+            entity: sensor.cgm_subject_4
+          - type: custom:button-card
+            template: cgm_state_badge
+            entity: sensor.cgm_subject_4
+        columns: 4
+        grid_options:
+          columns: 48
+          rows: auto
+    column_span: 4
+  - type: grid
+    cards:
+      - square: false
+        type: grid
+        cards:
+          - type: custom:button-card
+            entity: ""
+            template: cgm_subject_label
+            section_mode: true
+            name: "Subject 5"
+            tap_action:
+              action: navigate
+              navigation_path: /cgm-monitor/cgm-subject-5
+          - type: custom:button-card
+            template: cgm_glucose
+            entity: sensor.cgm_subject_5
+            tap_action:
+              action: navigate
+              navigation_path: /cgm-monitor/cgm-subject-5
+          - type: custom:button-card
+            template: cgm_trend
+            entity: sensor.cgm_subject_5
+          - type: custom:button-card
+            template: cgm_state_badge
+            entity: sensor.cgm_subject_5
+        columns: 4
+        grid_options:
+          columns: 48
+          rows: auto
+    column_span: 4
+  - type: grid
+    cards:
+      - square: false
+        type: grid
+        cards:
+          - type: custom:button-card
+            entity: ""
+            template: cgm_subject_label
+            section_mode: true
+            name: "Subject 6"
+            tap_action:
+              action: navigate
+              navigation_path: /cgm-monitor/cgm-subject-6
+          - type: custom:button-card
+            template: cgm_glucose
+            entity: sensor.cgm_subject_6
+            tap_action:
+              action: navigate
+              navigation_path: /cgm-monitor/cgm-subject-6
+          - type: custom:button-card
+            template: cgm_trend
+            entity: sensor.cgm_subject_6
+          - type: custom:button-card
+            template: cgm_state_badge
+            entity: sensor.cgm_subject_6
+        columns: 4
+        grid_options:
+          columns: 48
+          rows: auto
+    column_span: 4
+  - type: grid
+    cards:
+      - square: false
+        type: grid
+        cards:
+          - type: custom:button-card
+            entity: ""
+            template: cgm_subject_label
+            section_mode: true
+            name: "Subject 7"
+            tap_action:
+              action: navigate
+              navigation_path: /cgm-monitor/cgm-subject-7
+          - type: custom:button-card
+            template: cgm_glucose
+            entity: sensor.cgm_subject_7
+            tap_action:
+              action: navigate
+              navigation_path: /cgm-monitor/cgm-subject-7
+          - type: custom:button-card
+            template: cgm_trend
+            entity: sensor.cgm_subject_7
+          - type: custom:button-card
+            template: cgm_state_badge
+            entity: sensor.cgm_subject_7
+        columns: 4
+        grid_options:
+          columns: 48
+          rows: auto
+    column_span: 4
+  - type: grid
+    cards:
+      - square: false
+        type: grid
+        cards:
+          - type: custom:button-card
+            entity: ""
+            template: cgm_subject_label
+            section_mode: true
+            name: "Subject 8"
+            tap_action:
+              action: navigate
+              navigation_path: /cgm-monitor/cgm-subject-8
+          - type: custom:button-card
+            template: cgm_glucose
+            entity: sensor.cgm_subject_8
+            tap_action:
+              action: navigate
+              navigation_path: /cgm-monitor/cgm-subject-8
+          - type: custom:button-card
+            template: cgm_trend
+            entity: sensor.cgm_subject_8
+          - type: custom:button-card
+            template: cgm_state_badge
+            entity: sensor.cgm_subject_8
+        columns: 4
+        grid_options:
+          columns: 48
+          rows: auto
+    column_span: 4
 icon: mdi:home
+cards: []

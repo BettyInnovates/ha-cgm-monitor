@@ -1,0 +1,156 @@
+# CGM Monitor – button-card templates
+#
+# Add to your dashboard YAML root:
+#   button_card_templates: !include button-card-templates.yaml
+#
+# Usage in a card:
+#   type: custom:button-card
+#   template: cgm_glucose        ← single template
+#   template: [cgm_glucose]      ← list form (allows mixing multiple templates)
+#   entity: sensor.cgm_subject_1
+#
+# Templates can be overridden per-card — any key set on the card
+# takes precedence over the template value.
+
+# ── Shared helpers ────────────────────────────────────────────────────────────
+
+# Internal: JavaScript snippets stored as variables so the derived
+# templates don't repeat the same logic.  Not meant to be used directly.
+_cgm_state_color: &cgm_state_color >
+  [[[
+    const s = entity.state;
+    if (s === 'critical_low') return '#c62828';
+    if (s === 'very_low')     return '#e53935';
+    if (s === 'low')          return '#fb8c00';
+    if (s === 'ok')           return '#43a047';
+    if (s === 'high')         return '#fb8c00';
+    if (s === 'very_high')    return '#e53935';
+    return 'var(--secondary-text-color)';
+  ]]]
+
+_cgm_state_icon: &cgm_state_icon >
+  [[[
+    const s = entity.state;
+    if (s === 'critical_low') return 'mdi:arrow-collapse-down';
+    if (s === 'very_low')     return 'mdi:arrow-down-bold';
+    if (s === 'low')          return 'mdi:arrow-bottom-right';
+    if (s === 'ok')           return 'mdi:check-circle-outline';
+    if (s === 'high')         return 'mdi:arrow-top-right';
+    if (s === 'very_high')    return 'mdi:arrow-up-bold';
+    return 'mdi:help-circle-outline';
+  ]]]
+
+# ── Base: CGM state colour + shared card style ────────────────────────────────
+# Inherit from this to get state-reactive colour on any card.
+cgm_state:
+  color: *cgm_state_color
+  layout: icon_label
+  styles:
+    card:
+      - padding: 12px 16px
+    name:
+      - font-size: 0.8em
+      - color: var(--secondary-text-color)
+      - text-transform: uppercase
+      - letter-spacing: 0.05em
+      - align-self: center
+      - justify-self: start
+    label:
+      - align-self: center
+      - justify-self: start
+    icon:
+      - width: 28px
+      - color: *cgm_state_color
+
+# ── Glucose value card ────────────────────────────────────────────────────────
+# Shows the numeric glucose reading.  State badge coloured by CGM state.
+# Tap navigates to the subject detail view when navigation_path is set.
+#
+# Usage:
+#   type: custom:button-card
+#   template: cgm_glucose
+#   entity: sensor.cgm_subject_1
+#   name: Subject 1           # overrides the default "Glucose" label
+#   tap_action:
+#     action: navigate
+#     navigation_path: /lovelace/cgm-subject-1
+cgm_glucose:
+  template: cgm_state
+  show_name: false
+  show_label: true
+  show_state: false
+  name: Glucose
+  icon: *cgm_state_icon
+  label: "[[[ return (entity.attributes.glucose ?? '—') + '\u202fmg/dL'; ]]]"
+  styles:
+    label:
+      - font-size: 1.2em
+      - font-weight: 300
+      - color: *cgm_state_color
+    state:
+      - display: none
+
+# ── Trend card ────────────────────────────────────────────────────────────────
+# Shows the trend attribute from the CGM sensor.
+# Icon adapts to common trend strings (rising / falling / flat / arrows).
+#
+# Usage:
+#   type: custom:button-card
+#   template: cgm_trend
+#   entity: sensor.cgm_subject_1
+cgm_trend:
+  template: cgm_state
+  show_name: false
+  show_label: true
+  show_state: false
+  name: Trend
+  icon: >
+    [[[
+      const t = String(entity.attributes.trend ?? '').toLowerCase();
+      if (t.includes('doubleup')   || t === '↑↑')           return 'mdi:arrow-up-bold';
+      if (t.includes('rising')     || t.includes('up') || t === '↑')   return 'mdi:trending-up';
+      if (t.includes('doubledown') || t === '↓↓')           return 'mdi:arrow-down-bold';
+      if (t.includes('falling')    || t.includes('down') || t === '↓') return 'mdi:trending-down';
+      if (t.includes('flat')       || t.includes('steady') || t === '→') return 'mdi:trending-neutral';
+      return 'mdi:minus';
+    ]]]
+  label: "[[[ return entity.attributes.trend ?? '—'; ]]]"
+  styles:
+    label:
+      - font-size: 1.1em
+      - font-weight: 500
+
+# ── State badge ───────────────────────────────────────────────────────────────
+# Shows the CGM state string with a matching coloured icon to its left.
+# Use this anywhere you want a compact "ok", "low", "critical_low" badge.
+#
+# Usage:
+#   type: custom:button-card
+#   template: cgm_state_badge
+#   entity: sensor.cgm_subject_1
+cgm_state_badge:
+  template: cgm_state
+  show_name: false
+  show_label: true
+  show_state: false
+  icon: *cgm_state_icon
+  label: "[[[ return entity.state.replace(/_/g, ' '); ]]]"
+  styles:
+    label:
+      - font-size: 1em
+      - font-weight: 600
+      - color: *cgm_state_color
+      - text-transform: capitalize
+
+cgm_subject_label:
+  show_name: true
+  show_label: false
+  show_state: false
+  styles:
+    name:
+      - font-size: 1.2em
+      - font-weight: 600
+      - align-self: left
+      - justify-self: start
+    card:
+      - padding: 12px 16px

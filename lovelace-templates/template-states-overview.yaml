@@ -1,0 +1,26 @@
+type: custom:vertical-stack-in-card
+path: graph
+title: Status History
+icon: mdi:state-machine
+cards:
+  - type: history-graph
+    title: CGM States – 24 h
+    hours_to_show: 24
+    logarithmic_scale: false
+    entities:
+      - entity: sensor.cgm_subject_1
+        name: Subject 1
+      - entity: sensor.cgm_subject_2
+        name: Subject 2
+      - entity: sensor.cgm_subject_3
+        name: Subject 3
+      - entity: sensor.cgm_subject_4
+        name: Subject 4
+      - entity: sensor.cgm_subject_5
+        name: Subject 5
+      - entity: sensor.cgm_subject_6
+        name: Subject 6
+      - entity: sensor.cgm_subject_7
+        name: Subject 7
+      - entity: sensor.cgm_subject_8
+        name: Subject 8
