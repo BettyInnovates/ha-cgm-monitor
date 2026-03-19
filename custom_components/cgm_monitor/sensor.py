@@ -14,10 +14,11 @@ from homeassistant.const import (
 )
 from homeassistant.core import Event, EventStateChangedData, HomeAssistant, State, callback
 from homeassistant.exceptions import HomeAssistantError
-from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers import config_validation as cv, discovery
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
+from homeassistant.util import slugify
 
 from .const import (
     ATTR_DICT_OF_UNITS_OF_MEASUREMENT,
@@ -25,6 +26,7 @@ from .const import (
     ATTR_SENSORS,
     CONF_CRITICAL_LOW_THRESHOLD,
     CONF_GLUCOSE_SENSOR,
+    CONF_HASS_CONFIG,
     CONF_HIGH_THRESHOLD,
     CONF_LOW_THRESHOLD,
     CONF_TREND_SENSOR,
@@ -35,6 +37,8 @@ from .const import (
     DEFAULT_LOW_THRESHOLD,
     DEFAULT_VERY_HIGH_THRESHOLD,
     DEFAULT_VERY_LOW_THRESHOLD,
+    DOMAIN,
+    NUMBERS_LOADED_KEY,
     PROBLEM_NONE,
     READING_GLUCOSE,
     READING_TREND,
@@ -42,7 +46,8 @@ from .const import (
     STATE_HIGH,
     STATE_VERY_HIGH,
     STATE_VERY_LOW,
-    STATE_WARNING,
+    STATE_LOW,
+    THRESHOLD_DEFINITIONS,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -70,6 +75,18 @@ async def async_setup_platform(
     """Set up the CGM Monitor sensor platform."""
     async_add_entities([CgmMonitor(config)])
 
+    # Load number entities for this sensor if not already created.
+    # The guard prevents duplicate loading when the sensor platform is reloaded,
+    # while still creating number entities for new sensors added to configuration.yaml.
+    loaded: set[str] = hass.data.setdefault(NUMBERS_LOADED_KEY, set())
+    sensor_name = config[CONF_NAME]
+    if sensor_name not in loaded:
+        loaded.add(sensor_name)
+        hass_config = hass.data.get(DOMAIN, {}).get(CONF_HASS_CONFIG, {})
+        hass.async_create_task(
+            discovery.async_load_platform(hass, "number", DOMAIN, dict(config), hass_config)
+        )
+
 
 class CgmMonitor(SensorEntity):
     """Monitors CGM sensor data and checks glucose against warning thresholds."""
@@ -96,6 +113,12 @@ class CgmMonitor(SensorEntity):
         self._trend: str | None = None
         self._state: str | None = None
         self._problems = PROBLEM_NONE
+
+        name_slug = slugify(self._name)
+        self._threshold_entity_ids = {
+            f"number.{name_slug}_{conf_key}": (conf_key, default)
+            for conf_key, default, _ in THRESHOLD_DEFINITIONS
+        }
 
     @callback
     def _state_changed_event(self, event: Event[EventStateChangedData]) -> None:
@@ -141,18 +164,18 @@ class CgmMonitor(SensorEntity):
                 self.async_write_ha_state()
                 return
             else:
-                critical_low = self._config[CONF_CRITICAL_LOW_THRESHOLD]
-                very_low = self._config[CONF_VERY_LOW_THRESHOLD]
-                low = self._config[CONF_LOW_THRESHOLD]
-                high = self._config[CONF_HIGH_THRESHOLD]
-                very_high = self._config[CONF_VERY_HIGH_THRESHOLD]
+                critical_low = self._get_threshold(CONF_CRITICAL_LOW_THRESHOLD, DEFAULT_CRITICAL_LOW_THRESHOLD)
+                very_low = self._get_threshold(CONF_VERY_LOW_THRESHOLD, DEFAULT_VERY_LOW_THRESHOLD)
+                low = self._get_threshold(CONF_LOW_THRESHOLD, DEFAULT_LOW_THRESHOLD)
+                high = self._get_threshold(CONF_HIGH_THRESHOLD, DEFAULT_HIGH_THRESHOLD)
+                very_high = self._get_threshold(CONF_VERY_HIGH_THRESHOLD, DEFAULT_VERY_HIGH_THRESHOLD)
 
                 if self._glucose < critical_low:
                     self._state = STATE_CRITICAL_LOW
                 elif self._glucose < very_low:
                     self._state = STATE_VERY_LOW
                 elif self._glucose < low:
-                    self._state = STATE_WARNING
+                    self._state = STATE_LOW
                 elif self._glucose > very_high:
                     self._state = STATE_VERY_HIGH
                 elif self._glucose > high:
@@ -168,10 +191,30 @@ class CgmMonitor(SensorEntity):
         _LOGGER.debug("New data processed")
         self.async_write_ha_state()
 
+    @callback
+    def _threshold_changed_event(self, event: Event[EventStateChangedData]) -> None:
+        """Re-evaluate state when a threshold number entity changes."""
+        self._update_state()
+
+    def _get_threshold(self, conf_key: str, default: float) -> float:
+        """Read a threshold value from its number entity, falling back to config then default."""
+        name_slug = slugify(self._name)
+        entity_id = f"number.{name_slug}_{conf_key}"
+        state = self.hass.states.get(entity_id)
+        if state is not None and state.state not in (STATE_UNAVAILABLE, STATE_UNKNOWN):
+            try:
+                return float(state.state)
+            except (ValueError, TypeError):
+                pass
+        return self._config.get(conf_key, default)
+
     async def async_added_to_hass(self) -> None:
-        """Subscribe to sensor state changes after being added to hass."""
+        """Subscribe to sensor and threshold state changes after being added to hass."""
         async_track_state_change_event(
             self.hass, list(self._sensormap), self._state_changed_event
+        )
+        async_track_state_change_event(
+            self.hass, list(self._threshold_entity_ids), self._threshold_changed_event
         )
 
         for entity_id in self._sensormap:
