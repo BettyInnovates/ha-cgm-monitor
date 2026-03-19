@@ -24,3 +24,13 @@ cards:
         name: Subject 7
       - entity: sensor.cgm_subject_8
         name: Subject 8
+    card_mod:
+      style: |
+        ha-card {
+          --graph-color-1: #c62828;
+          --graph-color-2: #e53935;
+          --graph-color-3: #fb8c00;          
+          --graph-color-3: #43a047;          
+          --graph-color-3: #fb8c00;          
+          --graph-color-3: #e53935;          
+          }
