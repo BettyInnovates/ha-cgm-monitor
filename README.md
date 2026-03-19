@@ -48,6 +48,35 @@ The sensor state reflects the current glucose level relative to the configured t
 | `very_high` | glucose > `very_high_threshold` (default 180) |
 
 
+## Priority
+
+Each sensor exposes a `priority` attribute (`critical`, `warning`, or `normal`) derived from the combination of the current state and trend.
+
+The default mapping is defined in `custom_components/cgm_monitor/default-priority-mapping.yaml`. Any combination not listed there defaults to `normal`. If the glucose source sensor is unavailable, priority is always `critical`.
+
+Per-sensor overrides can be added in `configuration.yaml`. An override replaces a default entry for the given `(state, trend)` pair, or adds a new one if it wasn't in the defaults:
+
+```yaml
+sensor:
+  - platform: cgm_monitor
+    name: "CGM Subject 1"
+    glucose_sensor: "sensor.glucose_random_blood_sugar_01_value"
+    trend_sensor: "sensor.glucose_random_trend_01_trend"
+    priority_mapping_overrides:
+      - state: "low"
+        trend: "steady"
+        priority: "critical"
+      - state: "high"
+        trend: "rising_quickly"
+        priority: "warning"
+```
+
+Changes to `default-priority-mapping.yaml` take effect after triggering the CGM Monitor reload service — no HA core restart needed.
+
+The `cgm_priority` button-card template displays the priority attribute as a coloured badge and can be used alongside the other templates in any grid card.
+
+---
+
 ## Config
 
 ```yaml

@@ -1,34 +1,23 @@
-# Current TODOs
+# TODO priority mapping
 
-The following table shows the bounds of thresholds for the state of the sensor. 
+There should be a new attribute being calculated from the state and the trend of the entity and saved to the entity.
 
-| bound input  | Values | State |
-|--------------|--------|---|
-| critical_low | < 40   | critical_low |
-| very_low     | < 60   | very_low |
-| low          | < 80   | warning |
-| (target)     |        | ok |
-| high         | > 140  | high |
-| very_high    | > 180  | very_high |
+A default priority mapping should be read from default-priority-mapping.yaml, and overrides can be configured in the 
+platform configuration. Priorities are "critical", "warning" and "normal". Mappings not defined in the configuration
+will be mapped to "normal".
 
-TODO: Please implement the new thresholds in the `sensor.py` file. And adjust the documentation accordingly.
-
-Exmaple yaml config:
+Example:
 
 ```yaml
 sensor:
   - platform: cgm_monitor
     name: "CGM Subject 1"
-    glucose_sensor: "sensor.glucose_random_blood_sugar_01_value"
-    trend_sensor: "sensor.glucose_random_trend_01_trend"
-    critical_low_threshold: 40
-    very_low_threshold: 60
-    low_threshold: 80
-    high_threshold: 140
-    very_high_threshold: 180
-    warning_low: 100
-  - platform: cgm_monitor
-    name: "CGM Subject 2"
-    glucose_sensor: "sensor.glucose_random_sugar_02"
-    trend_sensor: "sensor.glucose_random_trend_02"
+    glucose_sensor: "sensor.glucose_random_sugar_01"
+    trend_sensor: "sensor.glucose_random_trend_01"
+    priority_mapping_overrides:
+      - state: "critical_low"
+        trend: "falling"
+        priority: "critical"
 ```
+
+Also, unavailable state from the source sensor should lead to a priority of "critical".

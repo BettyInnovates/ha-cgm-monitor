@@ -1,8 +1,10 @@
 """Support for monitoring CGM (Continuous Glucose Monitor) sensor data."""
 
 import logging
+from pathlib import Path
 
 import voluptuous as vol
+import yaml
 
 from homeassistant.components.sensor import PLATFORM_SCHEMA, SensorEntity
 from homeassistant.const import (
@@ -22,6 +24,7 @@ from homeassistant.util import slugify
 
 from .const import (
     ATTR_DICT_OF_UNITS_OF_MEASUREMENT,
+    ATTR_PRIORITY,
     ATTR_PROBLEM,
     ATTR_SENSORS,
     CONF_CRITICAL_LOW_THRESHOLD,
@@ -29,6 +32,7 @@ from .const import (
     CONF_HASS_CONFIG,
     CONF_HIGH_THRESHOLD,
     CONF_LOW_THRESHOLD,
+    CONF_PRIORITY_MAPPING_OVERRIDES,
     CONF_TREND_SENSOR,
     CONF_VERY_HIGH_THRESHOLD,
     CONF_VERY_LOW_THRESHOLD,
@@ -39,6 +43,9 @@ from .const import (
     DEFAULT_VERY_LOW_THRESHOLD,
     DOMAIN,
     NUMBERS_LOADED_KEY,
+    PRIORITY_CRITICAL,
+    PRIORITY_NORMAL,
+    PRIORITY_WARNING,
     PROBLEM_NONE,
     READING_GLUCOSE,
     READING_TREND,
@@ -52,6 +59,14 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
+_PRIORITY_OVERRIDE_SCHEMA = vol.Schema(
+    {
+        vol.Required("state"): cv.string,
+        vol.Required("trend"): cv.string,
+        vol.Required("priority"): vol.In([PRIORITY_CRITICAL, PRIORITY_WARNING, PRIORITY_NORMAL]),
+    }
+)
+
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
     {
         vol.Required(CONF_NAME): cv.string,
@@ -62,6 +77,9 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
         vol.Optional(CONF_LOW_THRESHOLD, default=DEFAULT_LOW_THRESHOLD): vol.Coerce(float),
         vol.Optional(CONF_HIGH_THRESHOLD, default=DEFAULT_HIGH_THRESHOLD): vol.Coerce(float),
         vol.Optional(CONF_VERY_HIGH_THRESHOLD, default=DEFAULT_VERY_HIGH_THRESHOLD): vol.Coerce(float),
+        vol.Optional(CONF_PRIORITY_MAPPING_OVERRIDES, default=[]): vol.All(
+            cv.ensure_list, [_PRIORITY_OVERRIDE_SCHEMA]
+        ),
     }
 )
 
@@ -113,12 +131,33 @@ class CgmMonitor(SensorEntity):
         self._trend: str | None = None
         self._state: str | None = None
         self._problems = PROBLEM_NONE
+        self._priority: str = PRIORITY_NORMAL
+
+        self._priority_map = self._build_priority_map(config.get(CONF_PRIORITY_MAPPING_OVERRIDES, []))
 
         name_slug = slugify(self._name)
         self._threshold_entity_ids = {
             f"number.{name_slug}_{conf_key}": (conf_key, default)
             for conf_key, default, _ in THRESHOLD_DEFINITIONS
         }
+
+    @staticmethod
+    def _build_priority_map(overrides: list[dict]) -> dict[tuple[str, str], str]:
+        """Build a (state, trend) → priority lookup from defaults + config overrides."""
+        defaults_path = Path(__file__).parent / "default-priority-mapping.yaml"
+        try:
+            with open(defaults_path) as f:
+                data = yaml.safe_load(f)
+            priority_map: dict[tuple[str, str], str] = {
+                (entry["state"], entry["trend"]): entry["priority"]
+                for entry in data.get("priority_mapping", [])
+            }
+        except Exception as err:
+            _LOGGER.warning("Could not load default priority mapping: %s", err)
+            priority_map = {}
+        for override in overrides:
+            priority_map[(override["state"], override["trend"])] = override["priority"]
+        return priority_map
 
     @callback
     def _state_changed_event(self, event: Event[EventStateChangedData]) -> None:
@@ -128,14 +167,19 @@ class CgmMonitor(SensorEntity):
     @callback
     def state_changed(self, entity_id: str, new_state: State | None) -> None:
         """Update readings when a tracked sensor changes."""
-        if new_state is None:
-            return
-        value = new_state.state
+        reading = self._sensormap[entity_id]
+        value = new_state.state if new_state is not None else None
         _LOGGER.debug("Received callback from %s with value %s", entity_id, value)
-        if value == STATE_UNKNOWN:
+
+        # None (entity removed) and unknown are non-informative for the trend —
+        # ignore them.  For glucose they signal a data gap and must be treated
+        # as unavailable so that priority is escalated to critical.
+        if value is None or value == STATE_UNKNOWN:
+            if reading == READING_GLUCOSE:
+                self._glucose = STATE_UNAVAILABLE
+                self._update_state()
             return
 
-        reading = self._sensormap[entity_id]
         if reading == READING_GLUCOSE:
             if value != STATE_UNAVAILABLE:
                 value = float(value)
@@ -160,6 +204,7 @@ class CgmMonitor(SensorEntity):
             if self._glucose == STATE_UNAVAILABLE:
                 self._state = STATE_UNAVAILABLE
                 self._problems = "glucose unavailable"
+                self._priority = PRIORITY_CRITICAL
                 _LOGGER.debug("New data processed")
                 self.async_write_ha_state()
                 return
@@ -187,6 +232,8 @@ class CgmMonitor(SensorEntity):
             self._problems = PROBLEM_NONE
         else:
             self._problems = self._state
+
+        self._priority = self._priority_map.get((self._state, self._trend), PRIORITY_NORMAL)
 
         _LOGGER.debug("New data processed")
         self.async_write_ha_state()
@@ -236,6 +283,7 @@ class CgmMonitor(SensorEntity):
         """Return entity attributes including individual sensor readings."""
         attrib = {
             ATTR_PROBLEM: self._problems,
+            ATTR_PRIORITY: self._priority,
             ATTR_SENSORS: self._readingmap,
             ATTR_DICT_OF_UNITS_OF_MEASUREMENT: self._unit_of_measurement,
             READING_GLUCOSE: self._glucose,

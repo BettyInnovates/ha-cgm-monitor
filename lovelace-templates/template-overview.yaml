@@ -12,10 +12,13 @@ sections:
         type: grid
         cards:
           - type: custom:button-card
+            template: cgm_priority
+            entity: sensor.cgm_subject_1
+          - type: custom:button-card
             entity: ""
             template: cgm_subject_label
             section_mode: true
-            name: "Subject 1"
+            name: Subject 1
             tap_action:
               action: navigate
               navigation_path: /cgm-monitor/cgm-subject-1
@@ -31,7 +34,7 @@ sections:
           - type: custom:button-card
             template: cgm_state_badge
             entity: sensor.cgm_subject_1
-        columns: 4
+        columns: 5
         grid_options:
           columns: 48
           rows: auto
@@ -42,10 +45,13 @@ sections:
         type: grid
         cards:
           - type: custom:button-card
+            template: cgm_priority
+            entity: sensor.cgm_subject_2
+          - type: custom:button-card
             entity: ""
             template: cgm_subject_label
             section_mode: true
-            name: "Subject 2"
+            name: Subject 2
             tap_action:
               action: navigate
               navigation_path: /cgm-monitor/cgm-subject-2
@@ -61,7 +67,7 @@ sections:
           - type: custom:button-card
             template: cgm_state_badge
             entity: sensor.cgm_subject_2
-        columns: 4
+        columns: 5
         grid_options:
           columns: 48
           rows: auto
@@ -75,10 +81,13 @@ sections:
         type: grid
         cards:
           - type: custom:button-card
+            template: cgm_priority
+            entity: sensor.cgm_subject_3
+          - type: custom:button-card
             entity: ""
             template: cgm_subject_label
             section_mode: true
-            name: "Subject 3"
+            name: Subject 3
             tap_action:
               action: navigate
               navigation_path: /cgm-monitor/cgm-subject-3
@@ -94,7 +103,7 @@ sections:
           - type: custom:button-card
             template: cgm_state_badge
             entity: sensor.cgm_subject_3
-        columns: 4
+        columns: 5
         grid_options:
           columns: 48
           rows: auto
@@ -105,10 +114,13 @@ sections:
         type: grid
         cards:
           - type: custom:button-card
+            template: cgm_priority
+            entity: sensor.cgm_subject_4
+          - type: custom:button-card
             entity: ""
             template: cgm_subject_label
             section_mode: true
-            name: "Subject 4"
+            name: Subject 4
             tap_action:
               action: navigate
               navigation_path: /cgm-monitor/cgm-subject-4
@@ -124,7 +136,7 @@ sections:
           - type: custom:button-card
             template: cgm_state_badge
             entity: sensor.cgm_subject_4
-        columns: 4
+        columns: 5
         grid_options:
           columns: 48
           rows: auto
@@ -135,10 +147,13 @@ sections:
         type: grid
         cards:
           - type: custom:button-card
+            template: cgm_priority
+            entity: sensor.cgm_subject_5
+          - type: custom:button-card
             entity: ""
             template: cgm_subject_label
             section_mode: true
-            name: "Subject 5"
+            name: Subject 5
             tap_action:
               action: navigate
               navigation_path: /cgm-monitor/cgm-subject-5
@@ -154,7 +169,7 @@ sections:
           - type: custom:button-card
             template: cgm_state_badge
             entity: sensor.cgm_subject_5
-        columns: 4
+        columns: 5
         grid_options:
           columns: 48
           rows: auto
@@ -165,10 +180,13 @@ sections:
         type: grid
         cards:
           - type: custom:button-card
+            template: cgm_priority
+            entity: sensor.cgm_subject_6
+          - type: custom:button-card
             entity: ""
             template: cgm_subject_label
             section_mode: true
-            name: "Subject 6"
+            name: Subject 6
             tap_action:
               action: navigate
               navigation_path: /cgm-monitor/cgm-subject-6
@@ -184,7 +202,7 @@ sections:
           - type: custom:button-card
             template: cgm_state_badge
             entity: sensor.cgm_subject_6
-        columns: 4
+        columns: 5
         grid_options:
           columns: 48
           rows: auto
@@ -195,10 +213,13 @@ sections:
         type: grid
         cards:
           - type: custom:button-card
+            template: cgm_priority
+            entity: sensor.cgm_subject_7
+          - type: custom:button-card
             entity: ""
             template: cgm_subject_label
             section_mode: true
-            name: "Subject 7"
+            name: Subject 7
             tap_action:
               action: navigate
               navigation_path: /cgm-monitor/cgm-subject-7
@@ -214,7 +235,7 @@ sections:
           - type: custom:button-card
             template: cgm_state_badge
             entity: sensor.cgm_subject_7
-        columns: 4
+        columns: 5
         grid_options:
           columns: 48
           rows: auto
@@ -225,10 +246,13 @@ sections:
         type: grid
         cards:
           - type: custom:button-card
+            template: cgm_priority
+            entity: sensor.cgm_subject_8
+          - type: custom:button-card
             entity: ""
             template: cgm_subject_label
             section_mode: true
-            name: "Subject 8"
+            name: Subject 8
             tap_action:
               action: navigate
               navigation_path: /cgm-monitor/cgm-subject-8
@@ -244,7 +268,7 @@ sections:
           - type: custom:button-card
             template: cgm_state_badge
             entity: sensor.cgm_subject_8
-        columns: 4
+        columns: 5
         grid_options:
           columns: 48
           rows: auto

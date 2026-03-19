@@ -142,6 +142,55 @@ cgm_state_badge:
       - color: *cgm_state_color
       - text-transform: capitalize
 
+# ── Priority badge ────────────────────────────────────────────────────────────
+# Shows the priority attribute ("critical", "warning", "normal") with a
+# matching coloured icon.  Useful alongside cgm_state_badge on overview rows.
+#
+# Usage:
+#   type: custom:button-card
+#   template: cgm_priority
+#   entity: sensor.cgm_subject_1
+cgm_priority:
+  template: cgm_state
+  show_name: false
+  show_label: false
+  show_state: false
+  icon: >
+    [[[
+      const p = (entity.attributes.priority ?? 'normal').toLowerCase();
+      if (p === 'critical') return 'mdi:alert-circle';
+      if (p === 'warning')  return 'mdi:alert';
+      return 'mdi:check-circle-outline';
+    ]]]
+  label: "[[[ return (entity.attributes.priority ?? 'normal'); ]]]"
+  color: >
+    [[[
+      const p = (entity.attributes.priority ?? 'normal').toLowerCase();
+      if (p === 'critical') return '#c62828';
+      if (p === 'warning')  return '#fb8c00';
+      return '#43a047';
+    ]]]
+  styles:
+    icon:
+      - color: >
+          [[[
+            const p = (entity.attributes.priority ?? 'normal').toLowerCase();
+            if (p === 'critical') return '#c62828';
+            if (p === 'warning')  return '#fb8c00';
+            return '#43a047';
+          ]]]
+    label:
+      - font-size: 1em
+      - font-weight: 600
+      - color: >
+          [[[
+            const p = (entity.attributes.priority ?? 'normal').toLowerCase();
+            if (p === 'critical') return '#c62828';
+            if (p === 'warning')  return '#fb8c00';
+            return '#43a047';
+          ]]]
+      - text-transform: capitalize
+
 cgm_subject_label:
   show_name: true
   show_label: false

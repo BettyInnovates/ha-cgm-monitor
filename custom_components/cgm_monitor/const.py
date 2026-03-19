@@ -43,3 +43,11 @@ ATTR_PROBLEM = "problem"
 ATTR_SENSORS = "sensors"
 ATTR_DICT_OF_UNITS_OF_MEASUREMENT = "unit_of_measurement_dict"
 PROBLEM_NONE = "none"
+
+CONF_PRIORITY_MAPPING_OVERRIDES = "priority_mapping_overrides"
+
+PRIORITY_CRITICAL = "critical"
+PRIORITY_WARNING = "warning"
+PRIORITY_NORMAL = "normal"
+
+ATTR_PRIORITY = "priority"
