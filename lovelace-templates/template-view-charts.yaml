@@ -1,0 +1,96 @@
+type: sections
+max_columns: 4
+title: Charts
+path: charts
+icon: mdi:chart-bell-curve
+sections:
+  - type: grid
+    cards:
+      - square: false
+        type: grid
+        cards:
+          - type: custom:apexcharts-card
+            graph_span: 12h
+            yaxis:
+              - id: glucose
+                min: 0
+                max: 400
+                apex_config:
+                  tickAmount: 8
+                  title:
+                    text: mg/dL
+            apex_config:
+              chart:
+                height: 300
+                toolbar:
+                  show: true
+                  tools:
+                    download: true
+                    selection: true
+                    zoom: true
+                    zoomin: true
+                    zoomout: true
+                    pan: true
+                    reset: true
+            header:
+              show: true
+              title: Cohort 1
+              show_states: false
+            series:
+              - entity: sensor.glucose_random_sugar_01
+                stroke_width: 1
+              - entity: sensor.glucose_random_sugar_02
+                stroke_width: 1
+        columns: 1
+        grid_options:
+          columns: full
+    column_span: 4
+  - type: grid
+    cards:
+      - square: false
+        type: grid
+        cards:
+          - type: custom:apexcharts-card
+            graph_span: 12h
+            yaxis:
+              - id: glucose
+                min: 0
+                max: 400
+                apex_config:
+                  tickAmount: 8
+                  title:
+                    text: mg/dL
+            apex_config:
+              chart:
+                height: 300
+                toolbar:
+                  show: true
+                  tools:
+                    download: true
+                    selection: true
+                    zoom: true
+                    zoomin: true
+                    zoomout: true
+                    pan: true
+                    reset: true
+            header:
+              show: true
+              title: Cohort 2
+              show_states: false
+            series:
+              - entity: sensor.glucose_random_sugar_03
+                stroke_width: 1
+              - entity: sensor.glucose_random_sugar_04
+                stroke_width: 1
+              - entity: sensor.glucose_random_sugar_05
+                stroke_width: 1
+              - entity: sensor.glucose_random_sugar_06
+                stroke_width: 1
+              - entity: sensor.glucose_random_sugar_07
+                stroke_width: 1
+              - entity: sensor.glucose_random_sugar_08
+                stroke_width: 1
+        columns: 1
+        grid_options:
+          columns: full
+    column_span: 4

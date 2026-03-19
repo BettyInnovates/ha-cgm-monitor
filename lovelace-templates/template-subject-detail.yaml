@@ -67,7 +67,6 @@ sections:
                     pan: true
                     reset: true
               fill:
-                type: gradient
                 gradient:
                   shadeIntensity: 0.3
                   opacityFrom: 0.4
@@ -76,20 +75,16 @@ sections:
                 x:
                   format: HH:mm dd/MM
             series:
-              - entity: sensor.glucose_random_sugar_01
-                name: Glucose
-                type: area
-                color: "#4caf50"
-                stroke_width: 2
-                fill_raw: last
-                extend_to: now
-                yaxis_id: glucose
               - entity: number.cgm_subject_2_critical_low_threshold
                 name: Critical Low
-                color: "#FF0000"
-                curve: straight
+                color: "#c62828"
+                stroke_width: 1.5
                 stroke_dash: 4
+                curve: straight
                 yaxis_id: glucose
+                data_generator: >
+                  return [[start.getTime(), parseFloat(entity.state)],
+                  [end.getTime(), parseFloat(entity.state)]];
                 show:
                   legend_value: true
                   in_header: false
@@ -101,6 +96,9 @@ sections:
                 stroke_dash: 4
                 curve: straight
                 yaxis_id: glucose
+                data_generator: >
+                  return [[start.getTime(), parseFloat(entity.state)],
+                  [end.getTime(), parseFloat(entity.state)]];
                 show:
                   legend_value: true
                   in_header: false
@@ -109,8 +107,12 @@ sections:
                 name: Low
                 color: "#fb8c00"
                 stroke_width: 1.5
+                stroke_dash: 4
                 curve: straight
                 yaxis_id: glucose
+                data_generator: >
+                  return [[start.getTime(), parseFloat(entity.state)],
+                  [end.getTime(), parseFloat(entity.state)]];
                 show:
                   legend_value: true
                   in_header: false
@@ -122,6 +124,9 @@ sections:
                 stroke_dash: 4
                 curve: straight
                 yaxis_id: glucose
+                data_generator: >
+                  return [[start.getTime(), parseFloat(entity.state)],
+                  [end.getTime(), parseFloat(entity.state)]];
                 show:
                   legend_value: true
                   in_header: false
@@ -133,10 +138,19 @@ sections:
                 stroke_dash: 4
                 curve: straight
                 yaxis_id: glucose
+                data_generator: >
+                  return [[start.getTime(), parseFloat(entity.state)],
+                  [end.getTime(), parseFloat(entity.state)]];
                 show:
                   legend_value: true
                   in_header: false
                   datalabels: false
+              - entity: sensor.glucose_random_sugar_01
+                name: Glucose
+                color: blue
+                stroke_width: 2
+                extend_to: now
+                yaxis_id: glucose
         columns: 1
         grid_options:
           columns: full
