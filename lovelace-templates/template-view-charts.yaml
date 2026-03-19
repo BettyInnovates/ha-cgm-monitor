@@ -21,6 +21,8 @@ sections:
                     text: mg/dL
             apex_config:
               chart:
+                zoom:
+                  enabled: true
                 height: 300
                 toolbar:
                   show: true
@@ -62,6 +64,8 @@ sections:
                     text: mg/dL
             apex_config:
               chart:
+                zoom:
+                  enabled: true
                 height: 300
                 toolbar:
                   show: true
