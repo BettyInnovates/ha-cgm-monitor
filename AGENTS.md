@@ -21,3 +21,4 @@ A Home Assistant custom component that wraps existing CGM (Continuous Glucose Mo
 - Always prefer home assistant's framework over custom code, datastore, etc.
 - Use classes and methods where appropriate and split into multiple files where appropriate. Keep it simple and methods 
   only as long as they are not too complex.
+- Please adjust the README.md file to reflect any changes.

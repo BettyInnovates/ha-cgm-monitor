@@ -1,0 +1,169 @@
+title: CGM Subject 1
+path: cgm-subject-1
+icon: mdi:diabetes
+show_icon_and_title: true
+type: custom:vertical-stack-in-card
+cards:
+  - type: entities
+    title: Current Readings
+    entities:
+      - entity: sensor.cgm_subject_1
+        name: Status
+        type: custom:multiple-entity-row
+      - entity: sensor.cgm_subject_1
+        type: custom:multiple-entity-row
+        name: Glucose (mg/dL)
+        unit: mg/dL
+        icon: mdi:water-percent
+        attribute: glucose
+      - entity: sensor.cgm_subject_1
+        type: custom:multiple-entity-row
+        name: Trend
+        icon: mdi:trending-up
+        attribute: trend
+  - type: custom:apexcharts-card
+    header:
+      title: Glucose – 24 h
+      show: true
+      colorize_states: true
+
+    graph_span: 24h
+    update_interval: 1min
+    stacked: false
+
+    yaxis:
+      - id: glucose
+        min: 0
+        max: 400
+        apex_config:
+          tickAmount: 8
+          title:
+            text: mg/dL
+
+    apex_config:
+      chart:
+        height: 300
+      fill:
+        type: gradient
+        gradient:
+          shadeIntensity: 0.3
+          opacityFrom: 0.4
+          opacityTo: 0.05
+      tooltip:
+        x:
+          format: "HH:mm dd/MM"
+
+    series:
+      - entity: sensor.glucose_source_entity
+        name: Glucose
+        type: area
+        color: "#4caf50"
+        stroke_width: 2
+        fill_raw: last
+        extend_to: now
+        yaxis_id: glucose
+      - entity: number.cgm_subject_1_critical_low_threshold
+        name: Critical Low
+        color: "#c62828"
+        stroke_width: 1.5
+        stroke_dasharray: 4
+        curve: straight
+        yaxis_id: glucose
+        data_generator: |
+          return [
+            [start.getTime(), parseFloat(entity.state)],
+            [end.getTime(),   parseFloat(entity.state)],
+          ];
+        show:
+          legend_value: true
+          in_header: false
+          datalabels: false
+      - entity: number.cgm_subject_1_very_low_threshold
+        name: Very Low
+        color: "#e53935"
+        stroke_width: 1.5
+        stroke_dasharray: 4
+        curve: straight
+        yaxis_id: glucose
+        data_generator: |
+          return [
+            [start.getTime(), parseFloat(entity.state)],
+            [end.getTime(),   parseFloat(entity.state)],
+          ];
+        show:
+          legend_value: true
+          in_header: false
+          datalabels: false
+
+      - entity: number.cgm_subject_1_low_threshold
+        name: Low
+        color: "#fb8c00"
+        stroke_width: 1.5
+        stroke_dasharray: 4
+        curve: straight
+        yaxis_id: glucose
+        data_generator: |
+          return [
+            [start.getTime(), parseFloat(entity.state)],
+            [end.getTime(),   parseFloat(entity.state)],
+          ];
+        show:
+          legend_value: true
+          in_header: false
+          datalabels: false
+
+      - entity: number.cgm_subject_1_high_threshold
+        name: High
+        color: "#fb8c00"
+        stroke_width: 1.5
+        stroke_dasharray: 4
+        curve: straight
+        yaxis_id: glucose
+        data_generator: |
+          return [
+            [start.getTime(), parseFloat(entity.state)],
+            [end.getTime(),   parseFloat(entity.state)],
+          ];
+        show:
+          legend_value: true
+          in_header: false
+          datalabels: false
+
+      - entity: number.cgm_subject_1_very_high_threshold
+        name: Very High
+        color: "#e53935"
+        stroke_width: 1.5
+        stroke_dasharray: 4
+        curve: straight
+        yaxis_id: glucose
+        data_generator: |
+          return [
+            [start.getTime(), parseFloat(entity.state)],
+            [end.getTime(),   parseFloat(entity.state)],
+          ];
+        show:
+          legend_value: true
+          in_header: false
+          datalabels: false
+  - type: entities
+    title: Threshold Controls
+    entities:
+      - entity: number.cgm_subject_1_critical_low_threshold
+        name: Critical Low
+        icon: mdi:arrow-collapse-down
+
+      - entity: number.cgm_subject_1_very_low_threshold
+        name: Very Low
+        icon: mdi:arrow-down
+
+      - entity: number.cgm_subject_1_low_threshold
+        name: Low
+        icon: mdi:arrow-bottom-right
+
+      - entity: number.cgm_subject_1_high_threshold
+        name: High
+        icon: mdi:arrow-top-right
+
+      - entity: number.cgm_subject_1_very_high_threshold
+        name: Very High
+        icon: mdi:arrow-up

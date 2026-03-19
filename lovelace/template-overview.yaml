@@ -1,0 +1,16 @@
+type: custom:vertical-stack-in-card
+title: Overview
+path: overview
+cards:
+  - type: entities
+    entities:
+      - entity: sensor.cgm_subject_1
+      - entity: sensor.cgm_subject_2
+      - entity: sensor.cgm_subject_3
+      - entity: sensor.cgm_subject_4
+      - entity: sensor.cgm_subject_5
+      - entity: sensor.cgm_subject_6
+      - entity: sensor.cgm_subject_7
+      - entity: sensor.cgm_subject_8
+    title: Subjects
+icon: mdi:home

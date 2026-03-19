@@ -1,5 +1,38 @@
 # CGM Monitor
 
+## used HACS addons
+
+For better UI:
+- https://github.com/benct/lovelace-multiple-entity-row (Multiple entity row attributes etc.)
+- https://github.com/RomRider/apexcharts-card (Better charts)
+- https://github.com/Nerwyn/custom-card-features (Actions card features)
+- https://github.com/ofekashery/vertical-stack-in-card (Vertical stack card)
+
+## CGM Subject Card (debug)
+
+A Lovelace card showing all readings, thresholds, and attributes for a single subject.
+
+**1. Register the resource** in `configuration.yaml` (or via Settings → Dashboards → Resources):
+
+```yaml
+lovelace:
+  resources:
+    - url: /local/cgm-subject-card.js
+      type: module
+```
+
+Copy `www/cgm-subject-card.js` from this repo into your HA `config/www/` directory.
+
+**2. Add to a dashboard:**
+
+```yaml
+type: custom:cgm-subject-card
+sensor: sensor.cgm_subject_1
+```
+
+The card automatically reads the matching `number.*` threshold entities and re-renders whenever any value changes.
+
+---
 
 ## Sensor States
 
@@ -23,11 +56,6 @@ sensor:
     name: "CGM Subject 1"
     glucose_sensor: "sensor.glucose_random_blood_sugar_01_value"
     trend_sensor: "sensor.glucose_random_trend_01_trend"
-    critical_low_threshold: 40
-    very_low_threshold: 60
-    low_threshold: 80
-    high_threshold: 140
-    very_high_threshold: 180
   - platform: cgm_monitor
     name: "CGM Subject 2"
     glucose_sensor: "sensor.glucose_random_sugar_02"
