@@ -8,21 +8,21 @@ cards:
     hours_to_show: 24
     logarithmic_scale: false
     entities:
-      - entity: sensor.cgm_subject_1
+      - entity: sensor.cgm_subject_1_state
         name: Subject 1
-      - entity: sensor.cgm_subject_2
+      - entity: sensor.cgm_subject_2_state
         name: Subject 2
-      - entity: sensor.cgm_subject_3
+      - entity: sensor.cgm_subject_3_state
         name: Subject 3
-      - entity: sensor.cgm_subject_4
+      - entity: sensor.cgm_subject_4_state
         name: Subject 4
-      - entity: sensor.cgm_subject_5
+      - entity: sensor.cgm_subject_5_state
         name: Subject 5
-      - entity: sensor.cgm_subject_6
+      - entity: sensor.cgm_subject_6_state
         name: Subject 6
-      - entity: sensor.cgm_subject_7
+      - entity: sensor.cgm_subject_7_state
         name: Subject 7
-      - entity: sensor.cgm_subject_8
+      - entity: sensor.cgm_subject_8_state
         name: Subject 8
     card_mod:
       style: |

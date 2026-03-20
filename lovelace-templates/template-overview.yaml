@@ -13,7 +13,7 @@ sections:
         cards:
           - type: custom:button-card
             template: cgm_priority
-            entity: sensor.cgm_subject_1
+            entity: sensor.cgm_subject_1_priority
           - type: custom:button-card
             entity: ""
             template: cgm_subject_label
@@ -30,10 +30,10 @@ sections:
               navigation_path: /cgm-monitor/cgm-subject-1
           - type: custom:button-card
             template: cgm_trend
-            entity: sensor.cgm_subject_1
+            entity: sensor.cgm_subject_1_trend
           - type: custom:button-card
             template: cgm_state_badge
-            entity: sensor.cgm_subject_1
+            entity: sensor.cgm_subject_1_state
         columns: 5
         grid_options:
           columns: 48
@@ -46,7 +46,7 @@ sections:
         cards:
           - type: custom:button-card
             template: cgm_priority
-            entity: sensor.cgm_subject_2
+            entity: sensor.cgm_subject_2_priority
           - type: custom:button-card
             entity: ""
             template: cgm_subject_label
@@ -63,10 +63,10 @@ sections:
               navigation_path: /cgm-monitor/cgm-subject-2
           - type: custom:button-card
             template: cgm_trend
-            entity: sensor.cgm_subject_2
+            entity: sensor.cgm_subject_2_trend
           - type: custom:button-card
             template: cgm_state_badge
-            entity: sensor.cgm_subject_2
+            entity: sensor.cgm_subject_2_state
         columns: 5
         grid_options:
           columns: 48
@@ -82,7 +82,7 @@ sections:
         cards:
           - type: custom:button-card
             template: cgm_priority
-            entity: sensor.cgm_subject_3
+            entity: sensor.cgm_subject_3_priority
           - type: custom:button-card
             entity: ""
             template: cgm_subject_label
@@ -99,10 +99,10 @@ sections:
               navigation_path: /cgm-monitor/cgm-subject-3
           - type: custom:button-card
             template: cgm_trend
-            entity: sensor.cgm_subject_3
+            entity: sensor.cgm_subject_3_trend
           - type: custom:button-card
             template: cgm_state_badge
-            entity: sensor.cgm_subject_3
+            entity: sensor.cgm_subject_3_state
         columns: 5
         grid_options:
           columns: 48
@@ -115,7 +115,7 @@ sections:
         cards:
           - type: custom:button-card
             template: cgm_priority
-            entity: sensor.cgm_subject_4
+            entity: sensor.cgm_subject_4_priority
           - type: custom:button-card
             entity: ""
             template: cgm_subject_label
@@ -132,10 +132,10 @@ sections:
               navigation_path: /cgm-monitor/cgm-subject-4
           - type: custom:button-card
             template: cgm_trend
-            entity: sensor.cgm_subject_4
+            entity: sensor.cgm_subject_4_trend
           - type: custom:button-card
             template: cgm_state_badge
-            entity: sensor.cgm_subject_4
+            entity: sensor.cgm_subject_4_state
         columns: 5
         grid_options:
           columns: 48
@@ -148,7 +148,7 @@ sections:
         cards:
           - type: custom:button-card
             template: cgm_priority
-            entity: sensor.cgm_subject_5
+            entity: sensor.cgm_subject_5_priority
           - type: custom:button-card
             entity: ""
             template: cgm_subject_label
@@ -165,10 +165,10 @@ sections:
               navigation_path: /cgm-monitor/cgm-subject-5
           - type: custom:button-card
             template: cgm_trend
-            entity: sensor.cgm_subject_5
+            entity: sensor.cgm_subject_5_trend
           - type: custom:button-card
             template: cgm_state_badge
-            entity: sensor.cgm_subject_5
+            entity: sensor.cgm_subject_5_state
         columns: 5
         grid_options:
           columns: 48
@@ -181,7 +181,7 @@ sections:
         cards:
           - type: custom:button-card
             template: cgm_priority
-            entity: sensor.cgm_subject_6
+            entity: sensor.cgm_subject_6_priority
           - type: custom:button-card
             entity: ""
             template: cgm_subject_label
@@ -198,10 +198,10 @@ sections:
               navigation_path: /cgm-monitor/cgm-subject-6
           - type: custom:button-card
             template: cgm_trend
-            entity: sensor.cgm_subject_6
+            entity: sensor.cgm_subject_6_trend
           - type: custom:button-card
             template: cgm_state_badge
-            entity: sensor.cgm_subject_6
+            entity: sensor.cgm_subject_6_state
         columns: 5
         grid_options:
           columns: 48
@@ -214,7 +214,7 @@ sections:
         cards:
           - type: custom:button-card
             template: cgm_priority
-            entity: sensor.cgm_subject_7
+            entity: sensor.cgm_subject_7_priority
           - type: custom:button-card
             entity: ""
             template: cgm_subject_label
@@ -231,10 +231,10 @@ sections:
               navigation_path: /cgm-monitor/cgm-subject-7
           - type: custom:button-card
             template: cgm_trend
-            entity: sensor.cgm_subject_7
+            entity: sensor.cgm_subject_7_trend
           - type: custom:button-card
             template: cgm_state_badge
-            entity: sensor.cgm_subject_7
+            entity: sensor.cgm_subject_7_state
         columns: 5
         grid_options:
           columns: 48
@@ -247,7 +247,7 @@ sections:
         cards:
           - type: custom:button-card
             template: cgm_priority
-            entity: sensor.cgm_subject_8
+            entity: sensor.cgm_subject_8_priority
           - type: custom:button-card
             entity: ""
             template: cgm_subject_label
@@ -264,10 +264,10 @@ sections:
               navigation_path: /cgm-monitor/cgm-subject-8
           - type: custom:button-card
             template: cgm_trend
-            entity: sensor.cgm_subject_8
+            entity: sensor.cgm_subject_8_trend
           - type: custom:button-card
             template: cgm_state_badge
-            entity: sensor.cgm_subject_8
+            entity: sensor.cgm_subject_8_state
         columns: 5
         grid_options:
           columns: 48

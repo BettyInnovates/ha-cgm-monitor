@@ -1,23 +1,19 @@
-# TODO priority mapping
+# TODO "move to more entities"
 
-There should be a new attribute being calculated from the state and the trend of the entity and saved to the entity.
+In the next step, we will move all attributes store in the main sensor entity to separate entities (with correct classes).
 
-A default priority mapping should be read from default-priority-mapping.yaml, and overrides can be configured in the 
-platform configuration. Priorities are "critical", "warning" and "normal". Mappings not defined in the configuration
-will be mapped to "normal".
+The main sensor should hold the glucose value from the original sensor.
 
-Example:
+There should be separate entities for:
+- priority (critical,warning,normal)
+- state (low,normal,high, etc.)
+- trend (from original sensor, falling slightly, etc.)
 
-```yaml
-sensor:
-  - platform: cgm_monitor
-    name: "CGM Subject 1"
-    glucose_sensor: "sensor.glucose_random_sugar_01"
-    trend_sensor: "sensor.glucose_random_trend_01"
-    priority_mapping_overrides:
-      - state: "critical_low"
-        trend: "falling"
-        priority: "critical"
-```
+The main sensor py and class should be refactored to reflect this in a very clean and readable way.
 
-Also, unavailable state from the source sensor should lead to a priority of "critical".
+All templates in lovelace-templates need to be reworked for the new entities. Since there are a lot of workarounds in the templates,
+to access attributes, those should be replaced with the easier way with the new entities.
+
+Short documentation should be added to the README.md, containing all the new entities.
+
+DONE

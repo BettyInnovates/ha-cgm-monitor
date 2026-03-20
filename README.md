@@ -34,23 +34,42 @@ The card automatically reads the matching `number.*` threshold entities and re-r
 
 ---
 
+## Entities
+
+Each entry in `configuration.yaml` creates the following entities (using "CGM Subject 1" as an example, slug `cgm_subject_1`):
+
+| Entity ID | Domain | Description |
+|---|---|---|
+| `sensor.cgm_subject_1` | `sensor` | Current glucose reading (mg/dL). Becomes unavailable when the source sensor is unavailable or unknown. |
+| `sensor.cgm_subject_1_state` | `sensor` | CGM state category: `critical_low`, `very_low`, `low`, `ok`, `high`, `very_high`. Becomes unavailable when glucose is unavailable. |
+| `sensor.cgm_subject_1_priority` | `sensor` | Alert priority: `critical`, `warning`, or `normal`. Always `critical` when glucose is unavailable. |
+| `sensor.cgm_subject_1_trend` | `sensor` | Trend string mirrored from the configured trend source sensor. Only created when `trend_sensor` is configured. |
+| `number.cgm_subject_1_critical_low_threshold` | `number` | Adjustable threshold (mg/dL). Value persists across restarts. |
+| `number.cgm_subject_1_very_low_threshold` | `number` | |
+| `number.cgm_subject_1_low_threshold` | `number` | |
+| `number.cgm_subject_1_high_threshold` | `number` | |
+| `number.cgm_subject_1_very_high_threshold` | `number` | |
+
+---
+
 ## Sensor States
 
-The sensor state reflects the current glucose level relative to the configured thresholds:
+The state entity reflects the current glucose level relative to the configured thresholds:
 
 | State | Condition |
 |---|---|
 | `critical_low` | glucose < `critical_low_threshold` (default 40) |
 | `very_low` | glucose < `very_low_threshold` (default 60) |
-| `warning` | glucose < `low_threshold` (default 80) |
+| `low` | glucose < `low_threshold` (default 80) |
 | `ok` | glucose within target range |
 | `high` | glucose > `high_threshold` (default 140) |
 | `very_high` | glucose > `very_high_threshold` (default 180) |
 
+---
 
 ## Priority
 
-Each sensor exposes a `priority` attribute (`critical`, `warning`, or `normal`) derived from the combination of the current state and trend.
+The priority entity value is derived from the combination of the current CGM state and trend.
 
 The default mapping is defined in `custom_components/cgm_monitor/default-priority-mapping.yaml`. Any combination not listed there defaults to `normal`. If the glucose source sensor is unavailable, priority is always `critical`.
 
@@ -72,8 +91,6 @@ sensor:
 ```
 
 Changes to `default-priority-mapping.yaml` take effect after triggering the CGM Monitor reload service — no HA core restart needed.
-
-The `cgm_priority` button-card template displays the priority attribute as a coloured badge and can be used alongside the other templates in any grid card.
 
 ---
 

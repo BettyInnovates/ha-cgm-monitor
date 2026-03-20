@@ -1,206 +1,247 @@
-# CGM Monitor – button-card templates
-#
-# Add to your dashboard YAML root:
-#   button_card_templates: !include button-card-templates.yaml
-#
-# Usage in a card:
-#   type: custom:button-card
-#   template: cgm_glucose        ← single template
-#   template: [cgm_glucose]      ← list form (allows mixing multiple templates)
-#   entity: sensor.cgm_subject_1
-#
-# Templates can be overridden per-card — any key set on the card
-# takes precedence over the template value.
+  # CGM Monitor – button-card templates
+  #
+  # Add to your dashboard YAML root:
+  #   button_card_templates: !include button-card-templates.yaml
+  #
+  # Entity IDs per subject (name slug = e.g. "cgm_subject_1"):
+  #   sensor.<slug>           – glucose value (mg/dL)
+  #   sensor.<slug>_state     – CGM state (critical_low / low / ok / high / …)
+  #   sensor.<slug>_priority  – priority (critical / warning / normal)
+  #   sensor.<slug>_trend     – trend string (only if trend_sensor is configured)
+  #
+  # Usage:
+  #   type: custom:button-card
+  #   template: cgm_glucose
+  #   entity: sensor.cgm_subject_1           ← glucose entity
+  #
+  #   type: custom:button-card
+  #   template: cgm_state_badge
+  #   entity: sensor.cgm_subject_1_state     ← state entity
+  #
+  # Templates can be overridden per-card — any key set on the card
+  # takes precedence over the template value.
 
-# ── Shared helpers ────────────────────────────────────────────────────────────
+  # ── Shared helpers ─────────────────────────────────────────────────────────────
 
-# Internal: JavaScript snippets stored as variables so the derived
-# templates don't repeat the same logic.  Not meant to be used directly.
-_cgm_state_color: &cgm_state_color >
-  [[[
-    const s = entity.state;
-    if (s === 'critical_low') return '#c62828';
-    if (s === 'very_low')     return '#e53935';
-    if (s === 'low')          return '#fb8c00';
-    if (s === 'ok')           return '#43a047';
-    if (s === 'high')         return '#fb8c00';
-    if (s === 'very_high')    return '#e53935';
-    return 'var(--secondary-text-color)';
-  ]]]
+  # Internal: colour and icon keyed on the CGM state string.
+  # Used directly by cgm_state_badge (entity.state IS the cgm state).
+  # cgm_glucose uses the _cgm_glucose_* variants below, which look up the
+  # sibling state entity so the glucose entity can be independently coloured.
 
-_cgm_state_icon: &cgm_state_icon >
-  [[[
-    const s = entity.state;
-    if (s === 'critical_low') return 'mdi:arrow-collapse-down';
-    if (s === 'very_low')     return 'mdi:arrow-down-bold';
-    if (s === 'low')          return 'mdi:arrow-bottom-right';
-    if (s === 'ok')           return 'mdi:check-circle-outline';
-    if (s === 'high')         return 'mdi:arrow-top-right';
-    if (s === 'very_high')    return 'mdi:arrow-up-bold';
-    return 'mdi:help-circle-outline';
-  ]]]
-
-# ── Base: CGM state colour + shared card style ────────────────────────────────
-# Inherit from this to get state-reactive colour on any card.
-cgm_state:
-  color: *cgm_state_color
-  layout: icon_label
-  styles:
-    card:
-      - padding: 12px 16px
-    name:
-      - font-size: 0.8em
-      - color: var(--secondary-text-color)
-      - text-transform: uppercase
-      - letter-spacing: 0.05em
-      - align-self: center
-      - justify-self: start
-    label:
-      - align-self: center
-      - justify-self: start
-    icon:
-      - width: 28px
-      - color: *cgm_state_color
-
-# ── Glucose value card ────────────────────────────────────────────────────────
-# Shows the numeric glucose reading.  State badge coloured by CGM state.
-# Tap navigates to the subject detail view when navigation_path is set.
-#
-# Usage:
-#   type: custom:button-card
-#   template: cgm_glucose
-#   entity: sensor.cgm_subject_1
-#   name: Subject 1           # overrides the default "Glucose" label
-#   tap_action:
-#     action: navigate
-#     navigation_path: /lovelace/cgm-subject-1
-cgm_glucose:
-  template: cgm_state
-  show_name: false
-  show_label: true
-  show_state: false
-  name: Glucose
-  icon: *cgm_state_icon
-  label: "[[[ return (entity.attributes.glucose ?? '—') + '\u202fmg/dL'; ]]]"
-  styles:
-    label:
-      - font-size: 1.2em
-      - font-weight: 300
-      - color: *cgm_state_color
-    state:
-      - display: none
-
-# ── Trend card ────────────────────────────────────────────────────────────────
-# Shows the trend attribute from the CGM sensor.
-# Icon adapts to common trend strings (rising / falling / flat / arrows).
-#
-# Usage:
-#   type: custom:button-card
-#   template: cgm_trend
-#   entity: sensor.cgm_subject_1
-cgm_trend:
-  template: cgm_state
-  show_name: false
-  show_label: true
-  show_state: false
-  name: Trend
-  icon: >
+  _cgm_state_color: &cgm_state_color >
     [[[
-      const t = String(entity.attributes.trend ?? '').toLowerCase();
-      if (t.includes('doubleup')   || t === '↑↑')           return 'mdi:arrow-up-bold';
-      if (t.includes('rising')     || t.includes('up') || t === '↑')   return 'mdi:trending-up';
-      if (t.includes('doubledown') || t === '↓↓')           return 'mdi:arrow-down-bold';
-      if (t.includes('falling')    || t.includes('down') || t === '↓') return 'mdi:trending-down';
-      if (t.includes('flat')       || t.includes('steady') || t === '→') return 'mdi:trending-neutral';
-      return 'mdi:minus';
+      const s = entity.state;
+      if (s === 'critical_low') return '#c62828';
+      if (s === 'very_low')     return '#e53935';
+      if (s === 'low')          return '#fb8c00';
+      if (s === 'ok')           return '#43a047';
+      if (s === 'high')         return '#fb8c00';
+      if (s === 'very_high')    return '#e53935';
+      return 'var(--secondary-text-color)';
     ]]]
-  label: "[[[ return entity.attributes.trend ?? '—'; ]]]"
-  styles:
-    label:
-      - font-size: 1.1em
-      - font-weight: 500
 
-# ── State badge ───────────────────────────────────────────────────────────────
-# Shows the CGM state string with a matching coloured icon to its left.
-# Use this anywhere you want a compact "ok", "low", "critical_low" badge.
-#
-# Usage:
-#   type: custom:button-card
-#   template: cgm_state_badge
-#   entity: sensor.cgm_subject_1
-cgm_state_badge:
-  template: cgm_state
-  show_name: false
-  show_label: true
-  show_state: false
-  icon: *cgm_state_icon
-  label: "[[[ return entity.state.replace(/_/g, ' '); ]]]"
-  styles:
-    label:
-      - font-size: 1em
-      - font-weight: 600
-      - color: *cgm_state_color
-      - text-transform: capitalize
-
-# ── Priority badge ────────────────────────────────────────────────────────────
-# Shows the priority attribute ("critical", "warning", "normal") with a
-# matching coloured icon.  Useful alongside cgm_state_badge on overview rows.
-#
-# Usage:
-#   type: custom:button-card
-#   template: cgm_priority
-#   entity: sensor.cgm_subject_1
-cgm_priority:
-  template: cgm_state
-  name: Priority
-  show_name: false
-  show_label: false
-  show_state: false
-  icon: >
+  _cgm_state_icon: &cgm_state_icon >
     [[[
-      const p = (entity.attributes.priority ?? 'normal').toLowerCase();
-      if (p === 'critical') return 'mdi:alert-circle';
-      if (p === 'warning')  return 'mdi:alert';
-      return 'mdi:check-circle-outline';
+      const s = entity.state;
+      if (s === 'critical_low') return 'mdi:arrow-collapse-down';
+      if (s === 'very_low')     return 'mdi:arrow-down-bold';
+      if (s === 'low')          return 'mdi:arrow-bottom-right';
+      if (s === 'ok')           return 'mdi:check-circle-outline';
+      if (s === 'high')         return 'mdi:arrow-top-right';
+      if (s === 'very_high')    return 'mdi:arrow-up-bold';
+      return 'mdi:help-circle-outline';
     ]]]
-  label: "[[[ return (entity.attributes.priority ?? 'normal'); ]]]"
-  color: >
-    [[[
-      const p = (entity.attributes.priority ?? 'normal').toLowerCase();
-      if (p === 'critical') return '#c62828';
-      if (p === 'warning')  return '#fb8c00';
-      return '#43a047';
-    ]]]
-  styles:
-    icon:
-      - color: >
-          [[[
-            const p = (entity.attributes.priority ?? 'normal').toLowerCase();
-            if (p === 'critical') return '#c62828';
-            if (p === 'warning')  return '#fb8c00';
-            return '#43a047';
-          ]]]
-    label:
-      - font-size: 1em
-      - font-weight: 600
-      - color: >
-          [[[
-            const p = (entity.attributes.priority ?? 'normal').toLowerCase();
-            if (p === 'critical') return '#c62828';
-            if (p === 'warning')  return '#fb8c00';
-            return '#43a047';
-          ]]]
-      - text-transform: capitalize
 
-cgm_subject_label:
-  show_name: true
-  show_label: false
-  show_state: false
-  styles:
-    name:
-      - font-size: 1.2em
-      - font-weight: 600
-      - align-self: left
-      - justify-self: start
-    card:
-      - padding: 12px 16px
+  # Glucose-card variants: look up the sibling state entity
+  # (glucose entity id + '_state') to derive colour and icon.
+  _cgm_glucose_color: &cgm_glucose_color >
+    [[[
+      const s = states[entity.entity_id + '_state']?.state ?? 'ok';
+      if (s === 'critical_low') return '#c62828';
+      if (s === 'very_low')     return '#e53935';
+      if (s === 'low')          return '#fb8c00';
+      if (s === 'ok')           return '#43a047';
+      if (s === 'high')         return '#fb8c00';
+      if (s === 'very_high')    return '#e53935';
+      return 'var(--secondary-text-color)';
+    ]]]
+
+  _cgm_glucose_icon: &cgm_glucose_icon >
+    [[[
+      const s = states[entity.entity_id + '_state']?.state ?? 'ok';
+      if (s === 'critical_low') return 'mdi:arrow-collapse-down';
+      if (s === 'very_low')     return 'mdi:arrow-down-bold';
+      if (s === 'low')          return 'mdi:arrow-bottom-right';
+      if (s === 'ok')           return 'mdi:check-circle-outline';
+      if (s === 'high')         return 'mdi:arrow-top-right';
+      if (s === 'very_high')    return 'mdi:arrow-up-bold';
+      return 'mdi:help-circle-outline';
+    ]]]
+
+  # ── Base: shared card layout ───────────────────────────────────────────────────
+  # Inherit from this to get the standard icon_label layout and padding.
+  # cgm_state extends it further with state-reactive colour.
+  cgm_base:
+    layout: icon_label
+    styles:
+      card:
+        - padding: 12px 16px
+      name:
+        - font-size: 0.8em
+        - color: var(--secondary-text-color)
+        - text-transform: uppercase
+        - letter-spacing: 0.05em
+        - align-self: center
+        - justify-self: start
+      label:
+        - align-self: center
+        - justify-self: start
+      icon:
+        - width: 28px
+
+  # ── Base: CGM state colour ─────────────────────────────────────────────────────
+  # Inherit from this to get state-reactive colour on cards whose entity IS the
+  # state sensor (sensor.<slug>_state).
+  cgm_state:
+    template: cgm_base
+    color: *cgm_state_color
+    styles:
+      icon:
+        - width: 28px
+        - color: *cgm_state_color
+
+  # ── Glucose value card ─────────────────────────────────────────────────────────
+  # Entity: sensor.<slug>  (glucose sensor — state is the numeric mg/dL value)
+  # Colour is derived from the sibling state entity (sensor.<slug>_state).
+  #
+  # Usage:
+  #   type: custom:button-card
+  #   template: cgm_glucose
+  #   entity: sensor.cgm_subject_1
+  #   tap_action:
+  #     action: navigate
+  #     navigation_path: /lovelace/cgm-subject-1
+  cgm_glucose:
+    template: cgm_base
+    show_name: false
+    show_label: true
+    show_state: false
+    name: Glucose
+    icon: *cgm_glucose_icon
+    color: *cgm_glucose_color
+    label: >
+      [[[
+        return entity.state !== 'unavailable'
+          ? entity.state + '\u202fmg/dL'
+          : '—';
+      ]]]
+    styles:
+      label:
+        - font-size: 1.2em
+        - font-weight: 300
+        - color: *cgm_glucose_color
+      icon:
+        - width: 28px
+        - color: *cgm_glucose_color
+
+  # ── Trend card ─────────────────────────────────────────────────────────────────
+  # Entity: sensor.<slug>_trend  (state is the trend string)
+  #
+  # Usage:
+  #   type: custom:button-card
+  #   template: cgm_trend
+  #   entity: sensor.cgm_subject_1_trend
+  cgm_trend:
+    template: cgm_base
+    show_name: false
+    show_label: true
+    show_state: false
+    name: Trend
+    icon: >
+      [[[
+        const t = String(entity.state ?? '').toLowerCase();
+        if (t.includes('doubleup')   || t === '↑↑')                    return 'mdi:arrow-up-bold';
+        if (t.includes('rising')     || t.includes('up')   || t === '↑') return 'mdi:trending-up';
+        if (t.includes('doubledown') || t === '↓↓')                    return 'mdi:arrow-down-bold';
+        if (t.includes('falling')    || t.includes('down') || t === '↓') return 'mdi:trending-down';
+        if (t.includes('flat')       || t.includes('steady') || t === '→') return 'mdi:trending-neutral';
+        return 'mdi:minus';
+      ]]]
+    label: "[[[ return entity.state !== 'unavailable' ? entity.state : '—'; ]]]"
+    styles:
+      label:
+        - font-size: 1.1em
+        - font-weight: 500
+
+  # ── State badge ────────────────────────────────────────────────────────────────
+  # Entity: sensor.<slug>_state  (state is the CGM state string)
+  #
+  # Usage:
+  #   type: custom:button-card
+  #   template: cgm_state_badge
+  #   entity: sensor.cgm_subject_1_state
+  cgm_state_badge:
+    template: cgm_state
+    show_name: false
+    show_label: true
+    show_state: false
+    icon: *cgm_state_icon
+    label: "[[[ return entity.state !== 'unavailable' ? entity.state.replace(/_/g, ' ') : '—'; ]]]"
+    styles:
+      label:
+        - font-size: 1em
+        - font-weight: 600
+        - color: *cgm_state_color
+        - text-transform: capitalize
+
+  # ── Priority badge ─────────────────────────────────────────────────────────────
+  # Entity: sensor.<slug>_priority  (state is critical / warning / normal)
+  #
+  # Usage:
+  #   type: custom:button-card
+  #   template: cgm_priority
+  #   entity: sensor.cgm_subject_1_priority
+  cgm_priority:
+    template: cgm_base
+    name: Priority
+    show_name: false
+    show_label: false
+    show_state: false
+    icon: >
+      [[[
+        const p = entity.state ?? 'normal';
+        if (p === 'critical') return 'mdi:alert-circle';
+        if (p === 'warning')  return 'mdi:alert';
+        return 'mdi:check-circle-outline';
+      ]]]
+    color: >
+      [[[
+        const p = entity.state ?? 'normal';
+        if (p === 'critical') return '#c62828';
+        if (p === 'warning')  return '#fb8c00';
+        return '#43a047';
+      ]]]
+    styles:
+      icon:
+        - width: 28px
+        - color: >
+            [[[
+              const p = entity.state ?? 'normal';
+              if (p === 'critical') return '#c62828';
+              if (p === 'warning')  return '#fb8c00';
+              return '#43a047';
+            ]]]
+
+  # ── Subject label ──────────────────────────────────────────────────────────────
+  cgm_subject_label:
+    show_name: true
+    show_label: false
+    show_state: false
+    styles:
+      name:
+        - font-size: 1.2em
+        - font-weight: 600
+        - align-self: left
+        - justify-self: start
+      card:
+        - padding: 12px 16px

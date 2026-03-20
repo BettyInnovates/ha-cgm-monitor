@@ -6,7 +6,12 @@ from pathlib import Path
 import voluptuous as vol
 import yaml
 
-from homeassistant.components.sensor import PLATFORM_SCHEMA, SensorEntity
+from homeassistant.components.sensor import (
+    PLATFORM_SCHEMA,
+    SensorDeviceClass,
+    SensorEntity,
+    SensorStateClass,
+)
 from homeassistant.const import (
     ATTR_UNIT_OF_MEASUREMENT,
     CONF_NAME,
@@ -15,7 +20,6 @@ from homeassistant.const import (
     STATE_UNKNOWN,
 )
 from homeassistant.core import Event, EventStateChangedData, HomeAssistant, State, callback
-from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import config_validation as cv, discovery
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.event import async_track_state_change_event
@@ -23,10 +27,7 @@ from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
 from homeassistant.util import slugify
 
 from .const import (
-    ATTR_DICT_OF_UNITS_OF_MEASUREMENT,
-    ATTR_PRIORITY,
-    ATTR_PROBLEM,
-    ATTR_SENSORS,
+    CGM_STATES,
     CONF_CRITICAL_LOW_THRESHOLD,
     CONF_GLUCOSE_SENSOR,
     CONF_HASS_CONFIG,
@@ -45,16 +46,17 @@ from .const import (
     NUMBERS_LOADED_KEY,
     PRIORITY_CRITICAL,
     PRIORITY_NORMAL,
+    PRIORITY_STATES,
     PRIORITY_WARNING,
-    PROBLEM_NONE,
     READING_GLUCOSE,
     READING_TREND,
     STATE_CRITICAL_LOW,
     STATE_HIGH,
+    STATE_LOW,
     STATE_VERY_HIGH,
     STATE_VERY_LOW,
-    STATE_LOW,
     THRESHOLD_DEFINITIONS,
+    UNIT_MG_DL,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -71,7 +73,7 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
     {
         vol.Required(CONF_NAME): cv.string,
         vol.Required(CONF_GLUCOSE_SENSOR): cv.entity_id,
-        vol.Optional(CONF_TREND_SENSOR): cv.entity_id,
+        vol.Required(CONF_TREND_SENSOR): cv.entity_id,
         vol.Optional(CONF_CRITICAL_LOW_THRESHOLD, default=DEFAULT_CRITICAL_LOW_THRESHOLD): vol.Coerce(float),
         vol.Optional(CONF_VERY_LOW_THRESHOLD, default=DEFAULT_VERY_LOW_THRESHOLD): vol.Coerce(float),
         vol.Optional(CONF_LOW_THRESHOLD, default=DEFAULT_LOW_THRESHOLD): vol.Coerce(float),
@@ -91,7 +93,19 @@ async def async_setup_platform(
     discovery_info: DiscoveryInfoType | None = None,
 ) -> None:
     """Set up the CGM Monitor sensor platform."""
-    async_add_entities([CgmMonitor(config)])
+    coordinator = CgmCoordinator(hass, config)
+
+    entities: list[SensorEntity] = [
+        CgmGlucoseSensor(coordinator),
+        CgmStateSensor(coordinator),
+        CgmPrioritySensor(coordinator),
+        CgmTrendSensor(coordinator),
+    ]
+
+    for entity in entities:
+        coordinator.register(entity)
+
+    async_add_entities(entities)
 
     # Load number entities for this sensor if not already created.
     # The guard prevents duplicate loading when the sensor platform is reloaded,
@@ -106,40 +120,171 @@ async def async_setup_platform(
         )
 
 
-class CgmMonitor(SensorEntity):
-    """Monitors CGM sensor data and checks glucose against warning thresholds."""
+# ── Coordinator ────────────────────────────────────────────────────────────────
 
-    _attr_should_poll = False
 
-    def __init__(self, config: ConfigType) -> None:
-        """Initialize the CGM Monitor."""
+class CgmCoordinator:
+    """Holds all CGM data, subscribes to source sensors, and notifies entities on change."""
+
+    def __init__(self, hass: HomeAssistant, config: ConfigType) -> None:
+        self._hass = hass
         self._config = config
-        self._name = config[CONF_NAME]
+        self._name: str = config[CONF_NAME]
+        self._name_slug: str = slugify(self._name)
 
-        self._sensormap: dict[str, str] = {}
-        self._readingmap: dict[str, str] = {}
-        self._unit_of_measurement: dict[str, str] = {}
+        self._sensormap: dict[str, str] = {
+            config[CONF_GLUCOSE_SENSOR]: READING_GLUCOSE,
+            config[CONF_TREND_SENSOR]: READING_TREND,
+        }
 
-        self._sensormap[config[CONF_GLUCOSE_SENSOR]] = READING_GLUCOSE
-        self._readingmap[READING_GLUCOSE] = config[CONF_GLUCOSE_SENSOR]
+        self._threshold_entity_ids: set[str] = {
+            f"number.{self._name_slug}_{conf_key}"
+            for conf_key, _, _ in THRESHOLD_DEFINITIONS
+        }
 
-        if CONF_TREND_SENSOR in config:
-            self._sensormap[config[CONF_TREND_SENSOR]] = READING_TREND
-            self._readingmap[READING_TREND] = config[CONF_TREND_SENSOR]
-
-        self._glucose: float | str | None = None
+        self._glucose: float | None = None
+        self._cgm_state: str | None = None
         self._trend: str | None = None
-        self._state: str | None = None
-        self._problems = PROBLEM_NONE
         self._priority: str = PRIORITY_NORMAL
 
-        self._priority_map = self._build_priority_map(config.get(CONF_PRIORITY_MAPPING_OVERRIDES, []))
+        self._priority_map = self._build_priority_map(
+            config.get(CONF_PRIORITY_MAPPING_OVERRIDES, [])
+        )
 
-        name_slug = slugify(self._name)
-        self._threshold_entity_ids = {
-            f"number.{name_slug}_{conf_key}": (conf_key, default)
-            for conf_key, default, _ in THRESHOLD_DEFINITIONS
-        }
+        self._entities: list[SensorEntity] = []
+        self._setup_done = False
+
+    # ── Public API ─────────────────────────────────────────────────────────────
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+    @property
+    def glucose(self) -> float | None:
+        return self._glucose
+
+    @property
+    def cgm_state(self) -> str | None:
+        return self._cgm_state
+
+    @property
+    def trend(self) -> str | None:
+        return self._trend
+
+    @property
+    def priority(self) -> str:
+        return self._priority
+
+    def register(self, entity: SensorEntity) -> None:
+        """Register a dependent entity to be notified on data updates."""
+        self._entities.append(entity)
+
+    @callback
+    def async_setup(self) -> None:
+        """Subscribe to source sensors and fetch initial state. Called once after entities are added to hass."""
+        if self._setup_done:
+            return
+        self._setup_done = True
+
+        async_track_state_change_event(
+            self._hass, list(self._sensormap), self._source_changed
+        )
+        async_track_state_change_event(
+            self._hass, list(self._threshold_entity_ids), self._threshold_changed
+        )
+
+        for entity_id in self._sensormap:
+            if (state := self._hass.states.get(entity_id)) is not None:
+                self._process_source(entity_id, state)
+
+    # ── Internal ───────────────────────────────────────────────────────────────
+
+    @callback
+    def _source_changed(self, event: Event[EventStateChangedData]) -> None:
+        self._process_source(event.data["entity_id"], event.data["new_state"])
+
+    @callback
+    def _threshold_changed(self, event: Event[EventStateChangedData]) -> None:
+        self._recalculate()
+
+    def _process_source(self, entity_id: str, new_state: State | None) -> None:
+        """Update internal readings from a source sensor state change."""
+        reading = self._sensormap[entity_id]
+        value = new_state.state if new_state is not None else None
+        _LOGGER.debug("Received callback from %s with value %s", entity_id, value)
+
+        # None (entity removed) and unknown are non-informative for trend.
+        # For glucose they signal a data gap — treat as unavailable → critical priority.
+        if value is None or value == STATE_UNKNOWN:
+            if reading == READING_GLUCOSE:
+                self._glucose = None
+                self._cgm_state = None
+                self._priority = PRIORITY_CRITICAL
+                self._notify_entities()
+            return
+
+        if reading == READING_GLUCOSE:
+            if value == STATE_UNAVAILABLE:
+                self._glucose = None
+                self._cgm_state = None
+                self._priority = PRIORITY_CRITICAL
+                self._notify_entities()
+                return
+            self._glucose = float(value)
+        elif reading == READING_TREND:
+            self._trend = value
+
+        self._recalculate()
+
+    def _recalculate(self) -> None:
+        """Recompute cgm_state and priority from current readings."""
+        if self._glucose is None:
+            self._notify_entities()
+            return
+
+        critical_low = self._get_threshold(CONF_CRITICAL_LOW_THRESHOLD, DEFAULT_CRITICAL_LOW_THRESHOLD)
+        very_low = self._get_threshold(CONF_VERY_LOW_THRESHOLD, DEFAULT_VERY_LOW_THRESHOLD)
+        low = self._get_threshold(CONF_LOW_THRESHOLD, DEFAULT_LOW_THRESHOLD)
+        high = self._get_threshold(CONF_HIGH_THRESHOLD, DEFAULT_HIGH_THRESHOLD)
+        very_high = self._get_threshold(CONF_VERY_HIGH_THRESHOLD, DEFAULT_VERY_HIGH_THRESHOLD)
+
+        if self._glucose < critical_low:
+            self._cgm_state = STATE_CRITICAL_LOW
+        elif self._glucose < very_low:
+            self._cgm_state = STATE_VERY_LOW
+        elif self._glucose < low:
+            self._cgm_state = STATE_LOW
+        elif self._glucose > very_high:
+            self._cgm_state = STATE_VERY_HIGH
+        elif self._glucose > high:
+            self._cgm_state = STATE_HIGH
+        else:
+            self._cgm_state = STATE_OK
+
+        self._priority = self._priority_map.get(
+            (self._cgm_state, self._trend), PRIORITY_NORMAL
+        )
+
+        _LOGGER.debug("New data: glucose=%s state=%s priority=%s", self._glucose, self._cgm_state, self._priority)
+        self._notify_entities()
+
+    def _notify_entities(self) -> None:
+        """Push current state to all registered entities that are ready."""
+        for entity in self._entities:
+            if entity.hass is not None:
+                entity.async_write_ha_state()
+
+    def _get_threshold(self, conf_key: str, default: float) -> float:
+        """Read a threshold from its number entity, falling back to config then default."""
+        entity_id = f"number.{self._name_slug}_{conf_key}"
+        state = self._hass.states.get(entity_id)
+        if state is not None and state.state not in (STATE_UNAVAILABLE, STATE_UNKNOWN):
+            try:
+                return float(state.state)
+            except (ValueError, TypeError):
+                pass
+        return self._config.get(conf_key, default)
 
     @staticmethod
     def _build_priority_map(overrides: list[dict]) -> dict[tuple[str, str], str]:
@@ -159,135 +304,83 @@ class CgmMonitor(SensorEntity):
             priority_map[(override["state"], override["trend"])] = override["priority"]
         return priority_map
 
-    @callback
-    def _state_changed_event(self, event: Event[EventStateChangedData]) -> None:
-        """Handle sensor state change events."""
-        self.state_changed(event.data["entity_id"], event.data["new_state"])
 
-    @callback
-    def state_changed(self, entity_id: str, new_state: State | None) -> None:
-        """Update readings when a tracked sensor changes."""
-        reading = self._sensormap[entity_id]
-        value = new_state.state if new_state is not None else None
-        _LOGGER.debug("Received callback from %s with value %s", entity_id, value)
+# ── Entity base class ──────────────────────────────────────────────────────────
 
-        # None (entity removed) and unknown are non-informative for the trend —
-        # ignore them.  For glucose they signal a data gap and must be treated
-        # as unavailable so that priority is escalated to critical.
-        if value is None or value == STATE_UNKNOWN:
-            if reading == READING_GLUCOSE:
-                self._glucose = STATE_UNAVAILABLE
-                self._update_state()
-            return
 
-        if reading == READING_GLUCOSE:
-            if value != STATE_UNAVAILABLE:
-                value = float(value)
-            self._glucose = value
-        elif reading == READING_TREND:
-            self._trend = value
-        else:
-            raise HomeAssistantError(
-                f"Unknown reading from sensor {entity_id}: {value}"
-            )
+class _CgmEntity(SensorEntity):
+    """Base class for all CGM Monitor sensor entities."""
 
-        if ATTR_UNIT_OF_MEASUREMENT in new_state.attributes:
-            self._unit_of_measurement[reading] = new_state.attributes[
-                ATTR_UNIT_OF_MEASUREMENT
-            ]
+    _attr_should_poll = False
 
-        self._update_state()
-
-    def _update_state(self) -> None:
-        """Update entity state based on current readings."""
-        if self._glucose is not None:
-            if self._glucose == STATE_UNAVAILABLE:
-                self._state = STATE_UNAVAILABLE
-                self._problems = "glucose unavailable"
-                self._priority = PRIORITY_CRITICAL
-                _LOGGER.debug("New data processed")
-                self.async_write_ha_state()
-                return
-            else:
-                critical_low = self._get_threshold(CONF_CRITICAL_LOW_THRESHOLD, DEFAULT_CRITICAL_LOW_THRESHOLD)
-                very_low = self._get_threshold(CONF_VERY_LOW_THRESHOLD, DEFAULT_VERY_LOW_THRESHOLD)
-                low = self._get_threshold(CONF_LOW_THRESHOLD, DEFAULT_LOW_THRESHOLD)
-                high = self._get_threshold(CONF_HIGH_THRESHOLD, DEFAULT_HIGH_THRESHOLD)
-                very_high = self._get_threshold(CONF_VERY_HIGH_THRESHOLD, DEFAULT_VERY_HIGH_THRESHOLD)
-
-                if self._glucose < critical_low:
-                    self._state = STATE_CRITICAL_LOW
-                elif self._glucose < very_low:
-                    self._state = STATE_VERY_LOW
-                elif self._glucose < low:
-                    self._state = STATE_LOW
-                elif self._glucose > very_high:
-                    self._state = STATE_VERY_HIGH
-                elif self._glucose > high:
-                    self._state = STATE_HIGH
-                else:
-                    self._state = STATE_OK
-
-        if self._state in (STATE_OK, None):
-            self._problems = PROBLEM_NONE
-        else:
-            self._problems = self._state
-
-        self._priority = self._priority_map.get((self._state, self._trend), PRIORITY_NORMAL)
-
-        _LOGGER.debug("New data processed")
-        self.async_write_ha_state()
-
-    @callback
-    def _threshold_changed_event(self, event: Event[EventStateChangedData]) -> None:
-        """Re-evaluate state when a threshold number entity changes."""
-        self._update_state()
-
-    def _get_threshold(self, conf_key: str, default: float) -> float:
-        """Read a threshold value from its number entity, falling back to config then default."""
-        name_slug = slugify(self._name)
-        entity_id = f"number.{name_slug}_{conf_key}"
-        state = self.hass.states.get(entity_id)
-        if state is not None and state.state not in (STATE_UNAVAILABLE, STATE_UNKNOWN):
-            try:
-                return float(state.state)
-            except (ValueError, TypeError):
-                pass
-        return self._config.get(conf_key, default)
+    def __init__(self, coordinator: CgmCoordinator) -> None:
+        self._coordinator = coordinator
 
     async def async_added_to_hass(self) -> None:
-        """Subscribe to sensor and threshold state changes after being added to hass."""
-        async_track_state_change_event(
-            self.hass, list(self._sensormap), self._state_changed_event
-        )
-        async_track_state_change_event(
-            self.hass, list(self._threshold_entity_ids), self._threshold_changed_event
-        )
+        """Trigger coordinator subscription setup and write initial state."""
+        self._coordinator.async_setup()
+        self.async_write_ha_state()
 
-        for entity_id in self._sensormap:
-            if (state := self.hass.states.get(entity_id)) is not None:
-                self.state_changed(entity_id, state)
 
-    @property
-    def name(self) -> str:
-        """Return the name of the sensor."""
-        return self._name
+# ── Concrete entities ──────────────────────────────────────────────────────────
 
-    @property
-    def state(self) -> str | None:
-        """Return the state of the entity."""
-        return self._state
+
+class CgmGlucoseSensor(_CgmEntity):
+    """Main sensor: current glucose reading in mg/dL."""
+
+    _attr_native_unit_of_measurement = UNIT_MG_DL
+    _attr_state_class = SensorStateClass.MEASUREMENT
+
+    def __init__(self, coordinator: CgmCoordinator) -> None:
+        super().__init__(coordinator)
+        self._attr_name = coordinator.name
+        self._attr_unique_id = f"{slugify(coordinator.name)}_glucose"
 
     @property
-    def extra_state_attributes(self) -> dict:
-        """Return entity attributes including individual sensor readings."""
-        attrib = {
-            ATTR_PROBLEM: self._problems,
-            ATTR_PRIORITY: self._priority,
-            ATTR_SENSORS: self._readingmap,
-            ATTR_DICT_OF_UNITS_OF_MEASUREMENT: self._unit_of_measurement,
-            READING_GLUCOSE: self._glucose,
-        }
-        if self._trend is not None:
-            attrib[READING_TREND] = self._trend
-        return attrib
+    def native_value(self) -> float | None:
+        return self._coordinator.glucose
+
+
+class CgmStateSensor(_CgmEntity):
+    """Sensor reporting the CGM state category (critical_low, low, ok, high, …)."""
+
+    _attr_device_class = SensorDeviceClass.ENUM
+    _attr_options = CGM_STATES
+
+    def __init__(self, coordinator: CgmCoordinator) -> None:
+        super().__init__(coordinator)
+        self._attr_name = f"{coordinator.name} State"
+        self._attr_unique_id = f"{slugify(coordinator.name)}_state"
+
+    @property
+    def native_value(self) -> str | None:
+        return self._coordinator.cgm_state
+
+
+class CgmPrioritySensor(_CgmEntity):
+    """Sensor reporting the alert priority derived from state + trend."""
+
+    _attr_device_class = SensorDeviceClass.ENUM
+    _attr_options = PRIORITY_STATES
+
+    def __init__(self, coordinator: CgmCoordinator) -> None:
+        super().__init__(coordinator)
+        self._attr_name = f"{coordinator.name} Priority"
+        self._attr_unique_id = f"{slugify(coordinator.name)}_priority"
+
+    @property
+    def native_value(self) -> str:
+        return self._coordinator.priority
+
+
+class CgmTrendSensor(_CgmEntity):
+    """Sensor mirroring the trend value from the configured trend source sensor."""
+
+    def __init__(self, coordinator: CgmCoordinator) -> None:
+        super().__init__(coordinator)
+        self._attr_name = f"{coordinator.name} Trend"
+        self._attr_unique_id = f"{slugify(coordinator.name)}_trend"
+
+    @property
+    def native_value(self) -> str | None:
+        return self._coordinator.trend

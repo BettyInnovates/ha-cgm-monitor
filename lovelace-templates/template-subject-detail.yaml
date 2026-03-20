@@ -11,10 +11,10 @@ sections:
         cards:
           - type: custom:button-card
             template: cgm_priority
-            entity: sensor.cgm_subject_2
+            entity: sensor.cgm_subject_2_priority
             show_name: true
           - type: custom:button-card
-            entity: sensor.cgm_subject_2
+            entity: sensor.cgm_subject_2_state
             show_name: false
             template: cgm_state_badge
             section_mode: true
@@ -24,7 +24,7 @@ sections:
             template: cgm_glucose
             section_mode: true
           - type: custom:button-card
-            entity: sensor.cgm_subject_2
+            entity: sensor.cgm_subject_2_trend
             show_name: true
             template: cgm_trend
             section_mode: true
