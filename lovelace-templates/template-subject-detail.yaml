@@ -1,41 +1,79 @@
 type: sections
 max_columns: 4
-title: CGM Subject 2
-path: cgm-subject-2
+title: Subject Detail
+path: cgm-subject-detail
 icon: mdi:diabetes
+visible: false
+dense_section_placement: true
+header:
+  card:
+    type: markdown
+    text_only: true
+    content: >
+      {% set name = states('select.cgm_selected_subject') %}
+      # {{ name if name != 'unknown' else 'Subject Detail' }}
+cards: []
 sections:
+  # ── Stats row ──────────────────────────────────────────────────────────────
   - type: grid
     cards:
       - square: false
         type: grid
-        cards:
-          - type: custom:button-card
-            template: cgm_priority
-            entity: sensor.cgm_subject_2_priority
-            show_name: true
-          - type: custom:button-card
-            entity: sensor.cgm_subject_2_state
-            show_name: false
-            template: cgm_state_badge
-            section_mode: true
-          - type: custom:button-card
-            entity: sensor.cgm_subject_2
-            show_name: true
-            template: cgm_glucose
-            section_mode: true
-          - type: custom:button-card
-            entity: sensor.cgm_subject_2_trend
-            show_name: true
-            template: cgm_trend
-            section_mode: true
         columns: 5
         grid_options:
           columns: full
+        cards:
+          - type: custom:button-card
+            template: cgm_selected_priority
+
+          - type: custom:button-card
+            template: cgm_selected_state_badge
+            section_mode: true
+
+          - type: custom:button-card
+            template: cgm_selected_glucose
+            section_mode: true
+
+          - type: custom:button-card
+            template: cgm_selected_trend
+            section_mode: true
+
+          - type: custom:button-card
+            template: cgm_selected_notifications
+            section_mode: true
     column_span: 4
+
+  # ── Subject selector ───────────────────────────────────────────────────────
+  - type: grid
+    cards:
+      - type: entity
+        entity: select.cgm_selected_subject
+        name: Subject
+    column_span: 4
+
+  # ── Chart ──────────────────────────────────────────────────────────────────
+  # NOTE: apexcharts-card requires a static entity ID for history data.
+  # Replace `sensor.your_source_glucose_sensor` with the actual source glucose
+  # sensor for the subject you primarily use this view for, OR configure a
+  # template sensor in configuration.yaml that mirrors the selected subject:
+  #
+  #   template:
+  #     - sensor:
+  #         - name: CGM Selected Subject Glucose
+  #           unit_of_measurement: mg/dL
+  #           state: >
+  #             {{ states('sensor.' ~
+  #                states('select.cgm_selected_subject') | slugify) }}
+  #
+  # Note: a template sensor only retains history from when the subject was
+  # last selected — it does not carry historical data per subject.
   - type: grid
     cards:
       - square: false
         type: grid
+        columns: 1
+        grid_options:
+          columns: full
         cards:
           - type: custom:apexcharts-card
             header:
@@ -72,7 +110,7 @@ sections:
                 x:
                   format: HH:mm dd/MM
             series:
-              - entity: number.cgm_subject_2_critical_low_threshold
+              - entity: number.cgm_subject_1_critical_low_threshold  # ← adjust slug
                 name: Critical Low
                 color: "#c62828"
                 stroke_width: 1.5
@@ -82,7 +120,7 @@ sections:
                   legend_value: true
                   in_header: false
                   datalabels: false
-              - entity: number.cgm_subject_2_very_low_threshold
+              - entity: number.cgm_subject_1_very_low_threshold
                 name: Very Low
                 color: "#e53935"
                 stroke_width: 1.5
@@ -92,7 +130,7 @@ sections:
                   legend_value: true
                   in_header: false
                   datalabels: false
-              - entity: number.cgm_subject_2_low_threshold
+              - entity: number.cgm_subject_1_low_threshold
                 name: Low
                 color: "#fb8c00"
                 stroke_width: 1.5
@@ -102,7 +140,7 @@ sections:
                   legend_value: true
                   in_header: false
                   datalabels: false
-              - entity: number.cgm_subject_2_high_threshold
+              - entity: number.cgm_subject_1_high_threshold
                 name: High
                 color: "#fb8c00"
                 stroke_width: 1.5
@@ -112,7 +150,7 @@ sections:
                   legend_value: true
                   in_header: false
                   datalabels: false
-              - entity: number.cgm_subject_2_very_high_threshold
+              - entity: number.cgm_subject_1_very_high_threshold
                 name: Very High
                 color: "#e53935"
                 stroke_width: 1.5
@@ -122,46 +160,42 @@ sections:
                   legend_value: true
                   in_header: false
                   datalabels: false
-              - entity: sensor.glucose_random_sugar_01
+              - entity: sensor.your_source_glucose_sensor  # ← replace with actual source sensor
                 name: Glucose
                 color: blue
                 stroke_width: 2
                 extend_to: now
                 yaxis_id: glucose
-        columns: 1
-        grid_options:
-          columns: full
     column_span: 4
+
+  # ── Threshold controls ─────────────────────────────────────────────────────
+  # NOTE: standard entity cards require static entity IDs for interactive
+  # number sliders. Replace the slug below with the selected subject's slug,
+  # or duplicate this section per subject and toggle visibility with card-mod.
   - type: grid
     cards:
       - square: false
         type: grid
+        columns: 1
+        grid_options:
+          columns: full
         cards:
           - type: entities
             title: Threshold Controls
             entities:
-              - entity: number.cgm_subject_2_critical_low_threshold
+              - entity: number.cgm_subject_1_critical_low_threshold  # ← adjust slug
                 name: Critical Low
                 icon: mdi:arrow-collapse-down
-              - entity: number.cgm_subject_2_very_low_threshold
+              - entity: number.cgm_subject_1_very_low_threshold
                 name: Very Low
                 icon: mdi:arrow-down
-              - entity: number.cgm_subject_2_low_threshold
+              - entity: number.cgm_subject_1_low_threshold
                 name: Low
                 icon: mdi:arrow-bottom-right
-              - entity: number.cgm_subject_2_high_threshold
+              - entity: number.cgm_subject_1_high_threshold
                 name: High
                 icon: mdi:arrow-top-right
-              - entity: number.cgm_subject_2_very_high_threshold
+              - entity: number.cgm_subject_1_very_high_threshold
                 name: Very High
                 icon: mdi:arrow-up
-        columns: 1
-        grid_options:
-          columns: full
     column_span: 4
-header:
-  card:
-    type: markdown
-    text_only: true
-    content: "# CGM Subject 2"
-cards: []

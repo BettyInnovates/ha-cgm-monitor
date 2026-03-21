@@ -245,3 +245,251 @@
         - justify-self: start
       card:
         - padding: 12px 16px
+
+  # ── Selected-subject variants ───────────────────────────────────────────────
+  # These templates read the active subject from select.cgm_selected_subject
+  # and derive the entity ID dynamically. Use them in the shared subject-detail
+  # view so a single view works for all subjects.
+  #
+  # All cards use entity: select.cgm_selected_subject so they re-render when
+  # the selection changes. triggers_update: all ensures they also re-render
+  # when the underlying sensor values update.
+
+  # Shared JS snippet (repeated inline — YAML anchors can't span JS strings).
+  # In each template below:
+  #   name  = states['select.cgm_selected_subject'].state  (e.g. "CGM Subject 1")
+  #   slug  = "cgm_subject_1"  (HA slugify equivalent)
+
+  cgm_selected_priority:
+    template: cgm_base
+    entity: select.cgm_selected_subject
+    triggers_update: all
+    show_name: false
+    show_label: false
+    show_state: false
+    icon: >
+      [[[
+        const name = states['select.cgm_selected_subject']?.state ?? '';
+        const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+        const p = states[`sensor.${slug}_priority`]?.state ?? 'normal';
+        if (p === 'critical') return 'mdi:alert-circle';
+        if (p === 'warning')  return 'mdi:alert';
+        return 'mdi:check-circle-outline';
+      ]]]
+    color: >
+      [[[
+        const name = states['select.cgm_selected_subject']?.state ?? '';
+        const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+        const p = states[`sensor.${slug}_priority`]?.state ?? 'normal';
+        if (p === 'critical') return '#c62828';
+        if (p === 'warning')  return '#fb8c00';
+        return '#43a047';
+      ]]]
+    styles:
+      icon:
+        - width: 28px
+        - color: >
+            [[[
+              const name = states['select.cgm_selected_subject']?.state ?? '';
+              const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+              const p = states[`sensor.${slug}_priority`]?.state ?? 'normal';
+              if (p === 'critical') return '#c62828';
+              if (p === 'warning')  return '#fb8c00';
+              return '#43a047';
+            ]]]
+
+  cgm_selected_glucose:
+    template: cgm_base
+    entity: select.cgm_selected_subject
+    triggers_update: all
+    show_name: false
+    show_label: true
+    show_state: false
+    icon: >
+      [[[
+        const name = states['select.cgm_selected_subject']?.state ?? '';
+        const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+        const s = states[`sensor.${slug}_state`]?.state ?? 'ok';
+        if (s === 'critical_low') return 'mdi:arrow-collapse-down';
+        if (s === 'very_low')     return 'mdi:arrow-down-bold';
+        if (s === 'low')          return 'mdi:arrow-bottom-right';
+        if (s === 'ok')           return 'mdi:check-circle-outline';
+        if (s === 'high')         return 'mdi:arrow-top-right';
+        if (s === 'very_high')    return 'mdi:arrow-up-bold';
+        return 'mdi:help-circle-outline';
+      ]]]
+    color: >
+      [[[
+        const name = states['select.cgm_selected_subject']?.state ?? '';
+        const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+        const s = states[`sensor.${slug}_state`]?.state ?? 'ok';
+        if (s === 'critical_low') return '#c62828';
+        if (s === 'very_low')     return '#e53935';
+        if (s === 'low')          return '#fb8c00';
+        if (s === 'ok')           return '#43a047';
+        if (s === 'high')         return '#fb8c00';
+        if (s === 'very_high')    return '#e53935';
+        return 'var(--secondary-text-color)';
+      ]]]
+    label: >
+      [[[
+        const name = states['select.cgm_selected_subject']?.state ?? '';
+        const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+        const g = states[`sensor.${slug}`]?.state;
+        return g && g !== 'unavailable' ? g + '\u202fmg/dL' : '—';
+      ]]]
+    styles:
+      label:
+        - font-size: 1.2em
+        - font-weight: 300
+        - color: >
+            [[[
+              const name = states['select.cgm_selected_subject']?.state ?? '';
+              const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+              const s = states[`sensor.${slug}_state`]?.state ?? 'ok';
+              if (s === 'critical_low') return '#c62828';
+              if (s === 'very_low')     return '#e53935';
+              if (s === 'low')          return '#fb8c00';
+              if (s === 'ok')           return '#43a047';
+              if (s === 'high')         return '#fb8c00';
+              if (s === 'very_high')    return '#e53935';
+              return 'var(--secondary-text-color)';
+            ]]]
+      icon:
+        - width: 28px
+        - color: >
+            [[[
+              const name = states['select.cgm_selected_subject']?.state ?? '';
+              const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+              const s = states[`sensor.${slug}_state`]?.state ?? 'ok';
+              if (s === 'critical_low') return '#c62828';
+              if (s === 'very_low')     return '#e53935';
+              if (s === 'low')          return '#fb8c00';
+              if (s === 'ok')           return '#43a047';
+              if (s === 'high')         return '#fb8c00';
+              if (s === 'very_high')    return '#e53935';
+              return 'var(--secondary-text-color)';
+            ]]]
+
+  cgm_selected_state_badge:
+    template: cgm_base
+    entity: select.cgm_selected_subject
+    triggers_update: all
+    show_name: false
+    show_label: true
+    show_state: false
+    icon: >
+      [[[
+        const name = states['select.cgm_selected_subject']?.state ?? '';
+        const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+        const s = states[`sensor.${slug}_state`]?.state ?? 'ok';
+        if (s === 'critical_low') return 'mdi:arrow-collapse-down';
+        if (s === 'very_low')     return 'mdi:arrow-down-bold';
+        if (s === 'low')          return 'mdi:arrow-bottom-right';
+        if (s === 'ok')           return 'mdi:check-circle-outline';
+        if (s === 'high')         return 'mdi:arrow-top-right';
+        if (s === 'very_high')    return 'mdi:arrow-up-bold';
+        return 'mdi:help-circle-outline';
+      ]]]
+    color: >
+      [[[
+        const name = states['select.cgm_selected_subject']?.state ?? '';
+        const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+        const s = states[`sensor.${slug}_state`]?.state ?? 'ok';
+        if (s === 'critical_low') return '#c62828';
+        if (s === 'very_low')     return '#e53935';
+        if (s === 'low')          return '#fb8c00';
+        if (s === 'ok')           return '#43a047';
+        if (s === 'high')         return '#fb8c00';
+        if (s === 'very_high')    return '#e53935';
+        return 'var(--secondary-text-color)';
+      ]]]
+    label: >
+      [[[
+        const name = states['select.cgm_selected_subject']?.state ?? '';
+        const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+        const s = states[`sensor.${slug}_state`]?.state ?? '';
+        return s ? s.replace(/_/g, ' ') : '—';
+      ]]]
+    styles:
+      label:
+        - font-size: 1em
+        - font-weight: 600
+        - text-transform: capitalize
+        - color: >
+            [[[
+              const name = states['select.cgm_selected_subject']?.state ?? '';
+              const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+              const s = states[`sensor.${slug}_state`]?.state ?? 'ok';
+              if (s === 'critical_low') return '#c62828';
+              if (s === 'very_low')     return '#e53935';
+              if (s === 'low')          return '#fb8c00';
+              if (s === 'ok')           return '#43a047';
+              if (s === 'high')         return '#fb8c00';
+              if (s === 'very_high')    return '#e53935';
+              return 'var(--secondary-text-color)';
+            ]]]
+
+  cgm_selected_trend:
+    template: cgm_base
+    entity: select.cgm_selected_subject
+    triggers_update: all
+    show_name: false
+    show_label: true
+    show_state: false
+    icon: >
+      [[[
+        const name = states['select.cgm_selected_subject']?.state ?? '';
+        const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+        const t = String(states[`sensor.${slug}_trend`]?.state ?? '').toLowerCase();
+        if (t.includes('doubleup')   || t === '↑↑')                     return 'mdi:arrow-up-bold';
+        if (t.includes('rising')     || t.includes('up')   || t === '↑') return 'mdi:trending-up';
+        if (t.includes('doubledown') || t === '↓↓')                     return 'mdi:arrow-down-bold';
+        if (t.includes('falling')    || t.includes('down') || t === '↓') return 'mdi:trending-down';
+        if (t.includes('flat') || t.includes('steady')    || t === '→') return 'mdi:trending-neutral';
+        return 'mdi:minus';
+      ]]]
+    label: >
+      [[[
+        const name = states['select.cgm_selected_subject']?.state ?? '';
+        const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+        const t = states[`sensor.${slug}_trend`]?.state;
+        return t && t !== 'unavailable' ? t : '—';
+      ]]]
+    styles:
+      label:
+        - font-size: 1.1em
+        - font-weight: 500
+
+  cgm_selected_notifications:
+    template: cgm_base
+    entity: select.cgm_selected_subject
+    triggers_update: all
+    show_name: true
+    show_label: false
+    show_state: false
+    name: Notifications
+    icon: >
+      [[[
+        const name = states['select.cgm_selected_subject']?.state ?? '';
+        const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+        return states[`switch.${slug}_notifications`]?.state === 'on'
+          ? 'mdi:bell' : 'mdi:bell-off';
+      ]]]
+    color: >
+      [[[
+        const name = states['select.cgm_selected_subject']?.state ?? '';
+        const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+        return states[`switch.${slug}_notifications`]?.state === 'on'
+          ? 'var(--primary-color)' : 'var(--secondary-text-color)';
+      ]]]
+    tap_action:
+      action: call-service
+      service: switch.toggle
+      service_data:
+        entity_id: >
+          [[[
+            const name = states['select.cgm_selected_subject']?.state ?? '';
+            const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+            return `switch.${slug}_notifications`;
+          ]]]
