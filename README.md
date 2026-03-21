@@ -83,21 +83,40 @@ conditions:
     value_template: >
       {{ trigger.from_state.state != trigger.to_state.state }}
 actions:
-  - action: cgm_monitor.send_notification
-    data:
-      subject: CGM Subject 1
-      target: notify.mobile_app_myphone
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ trigger.to_state.state == 'critical' }}"
+        sequence:
+          - action: notify.mobile_app_myphone
+            data:
+              title: CGM Critical
+              message: >
+                CGM Subject 1: {{ states('sensor.cgm_subject_1') }} mg/dL,
+                State: {{ states('sensor.cgm_subject_1_state') }},
+                Trend: {{ states('sensor.cgm_subject_1_trend') }}
+              data:
+                ttl: 0
+                priority: high
+                channel: alarm_stream
+      - conditions:
+          - condition: template
+            value_template: "{{ trigger.to_state.state == 'warning' }}"
+        sequence:
+          - action: notify.mobile_app_myphone
+            data:
+              title: CGM Warning
+              message: >
+                CGM Subject 1: {{ states('sensor.cgm_subject_1') }} mg/dL,
+                State: {{ states('sensor.cgm_subject_1_state') }},
+                Trend: {{ states('sensor.cgm_subject_1_trend') }}
   - action: persistent_notification.create
     data:
       title: >
-        {% if trigger.to_state is defined %}
-          {{ 'CGM Warning' if trigger.to_state.state == 'warning' else 'CGM Critical' }}
-        {% else %}
-          CGM Critical - No new State
-        {% endif %}
+        {{ 'CGM Warning' if trigger.to_state.state == 'warning' else 'CGM Critical' }}
       message: >
-        CGM Subject 1: {{ states('sensor.cgm_subject_1') }} mg/dL, 
-        State: {{ states('sensor.cgm_subject_1_state') }}, 
+        CGM Subject 1: {{ states('sensor.cgm_subject_1') }} mg/dL,
+        State: {{ states('sensor.cgm_subject_1_state') }},
         Trend: {{ states('sensor.cgm_subject_1_trend') }}
       notification_id: cgm_subject_1_notification
 mode: single

@@ -101,6 +101,14 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
         if calendar:
             calendar.async_write_ha_state()
 
+        slug = slugify(subject)
+        await hass.services.async_call("date", "set_value", {"entity_id": f"date.{slug}_event_date", "date": datetime.date.today().isoformat()})
+        await hass.services.async_call("time", "set_value", {"entity_id": f"time.{slug}_event_time", "time": "12:00:00"})
+        await hass.services.async_call("select", "select_option", {"entity_id": f"select.{slug}_event_type", "option": EVENT_TYPES[0]})
+        await hass.services.async_call("select", "select_option", {"entity_id": f"select.{slug}_event_unit", "option": EVENT_UNITS[0]})
+        await hass.services.async_call("number", "set_value", {"entity_id": f"number.{slug}_event_dose", "value": 0})
+        await hass.services.async_call("text", "set_value", {"entity_id": f"text.{slug}_event_note", "value": ""})
+
     async def handle_delete_event(call: ServiceCall) -> None:
         subject: str = call.data[CONF_EVENT_SUBJECT]
         uid: str = call.data[CONF_EVENT_UID]
