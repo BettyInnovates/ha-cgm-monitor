@@ -136,31 +136,136 @@ sections:
     column_span: 4
   - type: grid
     cards:
+      - type: heading
+        icon: mdi:border-bottom-variant
+        heading: Thresholds
+        heading_style: title
       - square: false
         type: grid
         cards:
-          - type: entities
-            title: Threshold Controls
-            entities:
-              - entity: number.cgm_subject_2_critical_low_threshold
-                name: Critical Low
-                icon: mdi:arrow-collapse-down
-              - entity: number.cgm_subject_2_very_low_threshold
-                name: Very Low
-                icon: mdi:arrow-down
-              - entity: number.cgm_subject_2_low_threshold
-                name: Low
-                icon: mdi:arrow-bottom-right
-              - entity: number.cgm_subject_2_high_threshold
-                name: High
-                icon: mdi:arrow-top-right
-              - entity: number.cgm_subject_2_very_high_threshold
-                name: Very High
-                icon: mdi:arrow-up
-        columns: 1
+          - type: custom:button-card
+            entity: number.cgm_subject_2_very_high_threshold
+            show_name: true
+            name: Very High
+            show_state: true
+            show_icon: true
+            icon: mdi:arrow-up-bold
+          - type: custom:button-card
+            entity: number.cgm_subject_2_high_threshold
+            show_name: true
+            name: High
+            show_state: true
+            show_icon: true
+            icon: mdi:arrow-top-right
+          - type: custom:button-card
+            entity: number.cgm_subject_2_low_threshold
+            show_name: true
+            name: Low
+            show_state: true
+            show_icon: true
+            icon: mdi:arrow-bottom-right
+          - type: custom:button-card
+            entity: number.cgm_subject_2_very_low_threshold
+            show_name: true
+            name: Very Low
+            show_state: true
+            show_icon: true
+            icon: mdi:arrow-down-bold
+          - type: custom:button-card
+            entity: number.cgm_subject_2_critical_low_threshold
+            show_name: true
+            name: Critical Low
+            show_state: true
+            show_icon: true
+            icon: mdi:arrow-collapse-down
+        columns: 5
         grid_options:
           columns: full
     column_span: 4
+  - type: grid
+    column_span: 4
+    cards:
+      - type: heading
+        icon: mdi:calendar
+        heading: Events
+        heading_style: title
+      - initial_view: listWeek
+        type: calendar
+        entities:
+          - calendar.cgm_subject_2_events
+        grid_options:
+          columns: full
+          rows: 6
+      - type: heading
+        icon: mdi:calendar-edit
+        heading: Add Event
+        heading_style: title
+      - square: false
+        type: grid
+        columns: 1
+        grid_options:
+          columns: full
+        cards:
+          - type: entities
+            entities:
+              - entity: datetime.cgm_subject_2_event_datetime
+                name: Date & Time
+                icon: mdi:calendar-clock
+              - entity: select.cgm_subject_2_event_type
+                name: Type
+                icon: mdi:tag-outline
+              - entity: select.cgm_subject_2_event_unit
+                name: Unit
+                icon: mdi:scale
+              - entity: number.cgm_subject_2_event_dose
+                name: Dose
+                icon: mdi:needle
+              - entity: text.cgm_subject_2_event_note
+                name: Note
+                icon: mdi:text
+      - square: false
+        type: grid
+        cards:
+          - type: custom:button-card
+            name: Save
+            icon: mdi:content-save-outline
+            layout: icon_name
+            tap_action:
+              action: call-service
+              service: cgm_monitor.add_event
+              service_data:
+                subject: CGM Subject 2
+                start: >-
+                  [[[ return
+                  states['datetime.cgm_subject_2_event_datetime']?.state; ]]]
+                type: >-
+                  [[[ return states['select.cgm_subject_2_event_type']?.state;
+                  ]]]
+                unit: >-
+                  [[[ return states['select.cgm_subject_2_event_unit']?.state;
+                  ]]]
+                dose: >-
+                  [[[ return
+                  parseFloat(states['number.cgm_subject_2_event_dose']?.state)
+                  || 0; ]]]
+                note: >-
+                  [[[ return states['text.cgm_subject_2_event_note']?.state ||
+                  ''; ]]]
+            grid_options:
+              columns: 2
+              rows: 1
+            styles:
+              card:
+                - background-color: var(--primary-color)
+                - height: 42px
+                - padding: 0 20px
+              name:
+                - color: white
+                - font-size: 0.95em
+                - font-weight: 500
+              icon:
+                - color: white
+                - width: 18px
 header:
   card:
     type: markdown

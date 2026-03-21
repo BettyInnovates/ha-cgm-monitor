@@ -60,7 +60,11 @@ from .const import (
     STATE_LOW,
     STATE_VERY_HIGH,
     STATE_VERY_LOW,
+    CALENDAR_LOADED_KEY,
+    DATETIME_LOADED_KEY,
+    EVENT_SELECT_LOADED_KEY,
     SWITCHES_LOADED_KEY,
+    TEXT_LOADED_KEY,
     THRESHOLD_DEFINITIONS,
     UNIT_MG_DL,
 )
@@ -134,6 +138,34 @@ async def async_setup_platform(
         loaded_switches.add(sensor_name)
         hass.async_create_task(
             discovery.async_load_platform(hass, "switch", DOMAIN, dict(config), hass_config)
+        )
+
+    loaded_event_selects: set[str] = hass.data.setdefault(EVENT_SELECT_LOADED_KEY, set())
+    if sensor_name not in loaded_event_selects:
+        loaded_event_selects.add(sensor_name)
+        hass.async_create_task(
+            discovery.async_load_platform(hass, "select", DOMAIN, dict(config), hass_config)
+        )
+
+    loaded_calendars: set[str] = hass.data.setdefault(CALENDAR_LOADED_KEY, set())
+    if sensor_name not in loaded_calendars:
+        loaded_calendars.add(sensor_name)
+        hass.async_create_task(
+            discovery.async_load_platform(hass, "calendar", DOMAIN, dict(config), hass_config)
+        )
+
+    loaded_text: set[str] = hass.data.setdefault(TEXT_LOADED_KEY, set())
+    if sensor_name not in loaded_text:
+        loaded_text.add(sensor_name)
+        hass.async_create_task(
+            discovery.async_load_platform(hass, "text", DOMAIN, dict(config), hass_config)
+        )
+
+    loaded_datetime: set[str] = hass.data.setdefault(DATETIME_LOADED_KEY, set())
+    if sensor_name not in loaded_datetime:
+        loaded_datetime.add(sensor_name)
+        hass.async_create_task(
+            discovery.async_load_platform(hass, "datetime", DOMAIN, dict(config), hass_config)
         )
 
 

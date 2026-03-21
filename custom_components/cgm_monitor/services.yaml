@@ -1,3 +1,79 @@
 reload:
   name: Reload
   description: Reload CGM Monitor configuration from configuration.yaml without restarting Home Assistant.
+
+add_event:
+  name: Add CGM Event
+  description: Add an event (insulin, meal, exercise, …) to a subject's calendar.
+  fields:
+    subject:
+      name: Subject
+      description: The configured CGM subject name, e.g. "CGM Subject 1".
+      required: true
+      example: CGM Subject 1
+      selector:
+        text:
+    start:
+      name: Date & Time
+      description: When the event occurred.
+      required: true
+      selector:
+        datetime:
+    end:
+      name: End Date & Time
+      description: Optional end time. Defaults to the start time.
+      required: false
+      selector:
+        datetime:
+    type:
+      name: Event Type
+      description: Category of the event.
+      required: true
+      selector:
+        select:
+          options:
+            - Insulin
+            - Meal
+            - Exercise
+            - Custom
+    unit:
+      name: Unit
+      description: Unit for the dose (IU = insulin units, BE = bread units).
+      required: false
+      selector:
+        select:
+          options:
+            - IU
+            - BE
+    dose:
+      name: Dose
+      description: Amount in the chosen unit.
+      required: false
+      selector:
+        number:
+          min: 0
+          max: 100
+          step: 0.5
+    note:
+      name: Note
+      description: Free-text note.
+      required: false
+      selector:
+        text:
+
+delete_event:
+  name: Delete CGM Event
+  description: Remove an event from a subject's calendar by its UID.
+  fields:
+    subject:
+      name: Subject
+      description: The configured CGM subject name, e.g. "CGM Subject 1".
+      required: true
+      selector:
+        text:
+    uid:
+      name: Event UID
+      description: The unique identifier of the event (visible as calendar event UID).
+      required: true
+      selector:
+        text:

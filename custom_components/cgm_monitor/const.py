@@ -59,6 +59,27 @@ PRIORITY_STATES: Final[list[str]] = [PRIORITY_CRITICAL, PRIORITY_WARNING, PRIORI
 UNIT_MG_DL: Final = "mg/dL"
 NUMBERS_LOADED_KEY = f"{DOMAIN}_numbers_loaded"
 SWITCHES_LOADED_KEY = f"{DOMAIN}_switches_loaded"
+EVENT_SELECT_LOADED_KEY = f"{DOMAIN}_event_select_loaded"
+CALENDAR_LOADED_KEY = f"{DOMAIN}_calendar_loaded"
+TEXT_LOADED_KEY = f"{DOMAIN}_text_loaded"
+DATETIME_LOADED_KEY = f"{DOMAIN}_datetime_loaded"
+
+# ── Subject events ─────────────────────────────────────────────────────────────
+
+STORES_KEY = "stores"
+CALENDARS_KEY = "calendars"
+
+EVENT_TYPES: list[str] = ["Insulin", "Meal", "Custom"]
+EVENT_UNITS: list[str] = ["IU", "BE"]
+
+CONF_EVENT_SUBJECT = "subject"
+CONF_EVENT_TYPE = "type"
+CONF_EVENT_UNIT = "unit"
+CONF_EVENT_DOSE = "dose"
+CONF_EVENT_NOTE = "note"
+CONF_EVENT_START = "start"
+CONF_EVENT_END = "end"
+CONF_EVENT_UID = "uid"
 
 # ── Notification configuration ────────────────────────────────────────────────
 
