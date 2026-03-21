@@ -60,8 +60,6 @@ from .const import (
     STATE_LOW,
     STATE_VERY_HIGH,
     STATE_VERY_LOW,
-    SELECT_LOADED_KEY,
-    SUBJECTS_KEY,
     SWITCHES_LOADED_KEY,
     THRESHOLD_DEFINITIONS,
     UNIT_MG_DL,
@@ -124,11 +122,6 @@ async def async_setup_platform(
     sensor_name = config[CONF_NAME]
     hass_config = hass.data.get(DOMAIN, {}).get(CONF_HASS_CONFIG, {})
 
-    # Register this subject for the select entity.
-    subjects: list[dict] = hass.data.setdefault(DOMAIN, {}).setdefault(SUBJECTS_KEY, [])
-    if not any(s["name"] == sensor_name for s in subjects):
-        subjects.append({"name": sensor_name, "slug": slugify(sensor_name)})
-
     loaded_numbers: set[str] = hass.data.setdefault(NUMBERS_LOADED_KEY, set())
     if sensor_name not in loaded_numbers:
         loaded_numbers.add(sensor_name)
@@ -141,12 +134,6 @@ async def async_setup_platform(
         loaded_switches.add(sensor_name)
         hass.async_create_task(
             discovery.async_load_platform(hass, "switch", DOMAIN, dict(config), hass_config)
-        )
-
-    if not hass.data.get(SELECT_LOADED_KEY):
-        hass.data[SELECT_LOADED_KEY] = True
-        hass.async_create_task(
-            discovery.async_load_platform(hass, "select", DOMAIN, {}, hass_config)
         )
 
 

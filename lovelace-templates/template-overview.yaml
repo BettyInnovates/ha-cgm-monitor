@@ -2,8 +2,6 @@ type: sections
 max_columns: 4
 title: Overview
 path: sandbox
-icon: mdi:home
-cards: []
 sections:
   - type: grid
     cards:
@@ -22,22 +20,14 @@ sections:
             section_mode: true
             name: Subject 1
             tap_action:
-              action: call-service
-              service: select.select_option
-              service_data:
-                entity_id: select.cgm_selected_subject
-                option: CGM Subject 1
-              navigation_path: /cgm-monitor/cgm-subject-detail
+              action: navigate
+              navigation_path: /cgm-monitor/cgm-subject-1
           - type: custom:button-card
             template: cgm_glucose
             entity: sensor.cgm_subject_1
             tap_action:
-              action: call-service
-              service: select.select_option
-              service_data:
-                entity_id: select.cgm_selected_subject
-                option: CGM Subject 1
-              navigation_path: /cgm-monitor/cgm-subject-detail
+              action: navigate
+              navigation_path: /cgm-monitor/cgm-subject-1
           - type: custom:button-card
             template: cgm_trend
             entity: sensor.cgm_subject_1_trend
@@ -63,22 +53,14 @@ sections:
             section_mode: true
             name: Subject 2
             tap_action:
-              action: call-service
-              service: select.select_option
-              service_data:
-                entity_id: select.cgm_selected_subject
-                option: CGM Subject 2
-              navigation_path: /cgm-monitor/cgm-subject-detail
+              action: navigate
+              navigation_path: /cgm-monitor/cgm-subject-2
           - type: custom:button-card
             template: cgm_glucose
             entity: sensor.cgm_subject_2
             tap_action:
-              action: call-service
-              service: select.select_option
-              service_data:
-                entity_id: select.cgm_selected_subject
-                option: CGM Subject 2
-              navigation_path: /cgm-monitor/cgm-subject-detail
+              action: navigate
+              navigation_path: /cgm-monitor/cgm-subject-2
           - type: custom:button-card
             template: cgm_trend
             entity: sensor.cgm_subject_2_trend
@@ -107,22 +89,14 @@ sections:
             section_mode: true
             name: Subject 3
             tap_action:
-              action: call-service
-              service: select.select_option
-              service_data:
-                entity_id: select.cgm_selected_subject
-                option: CGM Subject 3
-              navigation_path: /cgm-monitor/cgm-subject-detail
+              action: navigate
+              navigation_path: /cgm-monitor/cgm-subject-3
           - type: custom:button-card
             template: cgm_glucose
             entity: sensor.cgm_subject_3
             tap_action:
-              action: call-service
-              service: select.select_option
-              service_data:
-                entity_id: select.cgm_selected_subject
-                option: CGM Subject 3
-              navigation_path: /cgm-monitor/cgm-subject-detail
+              action: navigate
+              navigation_path: /cgm-monitor/cgm-subject-3
           - type: custom:button-card
             template: cgm_trend
             entity: sensor.cgm_subject_3_trend
@@ -148,22 +122,14 @@ sections:
             section_mode: true
             name: Subject 4
             tap_action:
-              action: call-service
-              service: select.select_option
-              service_data:
-                entity_id: select.cgm_selected_subject
-                option: CGM Subject 4
-              navigation_path: /cgm-monitor/cgm-subject-detail
+              action: navigate
+              navigation_path: /cgm-monitor/cgm-subject-4
           - type: custom:button-card
             template: cgm_glucose
             entity: sensor.cgm_subject_4
             tap_action:
-              action: call-service
-              service: select.select_option
-              service_data:
-                entity_id: select.cgm_selected_subject
-                option: CGM Subject 4
-              navigation_path: /cgm-monitor/cgm-subject-detail
+              action: navigate
+              navigation_path: /cgm-monitor/cgm-subject-4
           - type: custom:button-card
             template: cgm_trend
             entity: sensor.cgm_subject_4_trend
@@ -189,22 +155,14 @@ sections:
             section_mode: true
             name: Subject 5
             tap_action:
-              action: call-service
-              service: select.select_option
-              service_data:
-                entity_id: select.cgm_selected_subject
-                option: CGM Subject 5
-              navigation_path: /cgm-monitor/cgm-subject-detail
+              action: navigate
+              navigation_path: /cgm-monitor/cgm-subject-5
           - type: custom:button-card
             template: cgm_glucose
             entity: sensor.cgm_subject_5
             tap_action:
-              action: call-service
-              service: select.select_option
-              service_data:
-                entity_id: select.cgm_selected_subject
-                option: CGM Subject 5
-              navigation_path: /cgm-monitor/cgm-subject-detail
+              action: navigate
+              navigation_path: /cgm-monitor/cgm-subject-5
           - type: custom:button-card
             template: cgm_trend
             entity: sensor.cgm_subject_5_trend
@@ -230,22 +188,14 @@ sections:
             section_mode: true
             name: Subject 6
             tap_action:
-              action: call-service
-              service: select.select_option
-              service_data:
-                entity_id: select.cgm_selected_subject
-                option: CGM Subject 6
-              navigation_path: /cgm-monitor/cgm-subject-detail
+              action: navigate
+              navigation_path: /cgm-monitor/cgm-subject-6
           - type: custom:button-card
             template: cgm_glucose
             entity: sensor.cgm_subject_6
             tap_action:
-              action: call-service
-              service: select.select_option
-              service_data:
-                entity_id: select.cgm_selected_subject
-                option: CGM Subject 6
-              navigation_path: /cgm-monitor/cgm-subject-detail
+              action: navigate
+              navigation_path: /cgm-monitor/cgm-subject-6
           - type: custom:button-card
             template: cgm_trend
             entity: sensor.cgm_subject_6_trend
@@ -271,22 +221,14 @@ sections:
             section_mode: true
             name: Subject 7
             tap_action:
-              action: call-service
-              service: select.select_option
-              service_data:
-                entity_id: select.cgm_selected_subject
-                option: CGM Subject 7
-              navigation_path: /cgm-monitor/cgm-subject-detail
+              action: navigate
+              navigation_path: /cgm-monitor/cgm-subject-7
           - type: custom:button-card
             template: cgm_glucose
             entity: sensor.cgm_subject_7
             tap_action:
-              action: call-service
-              service: select.select_option
-              service_data:
-                entity_id: select.cgm_selected_subject
-                option: CGM Subject 7
-              navigation_path: /cgm-monitor/cgm-subject-detail
+              action: navigate
+              navigation_path: /cgm-monitor/cgm-subject-7
           - type: custom:button-card
             template: cgm_trend
             entity: sensor.cgm_subject_7_trend
@@ -312,22 +254,14 @@ sections:
             section_mode: true
             name: Subject 8
             tap_action:
-              action: call-service
-              service: select.select_option
-              service_data:
-                entity_id: select.cgm_selected_subject
-                option: CGM Subject 8
-              navigation_path: /cgm-monitor/cgm-subject-detail
+              action: navigate
+              navigation_path: /cgm-monitor/cgm-subject-8
           - type: custom:button-card
             template: cgm_glucose
             entity: sensor.cgm_subject_8
             tap_action:
-              action: call-service
-              service: select.select_option
-              service_data:
-                entity_id: select.cgm_selected_subject
-                option: CGM Subject 8
-              navigation_path: /cgm-monitor/cgm-subject-detail
+              action: navigate
+              navigation_path: /cgm-monitor/cgm-subject-8
           - type: custom:button-card
             template: cgm_trend
             entity: sensor.cgm_subject_8_trend
@@ -339,3 +273,5 @@ sections:
           columns: 48
           rows: auto
     column_span: 4
+icon: mdi:home
+cards: []
