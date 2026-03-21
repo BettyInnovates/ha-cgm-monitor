@@ -28,6 +28,8 @@ sections:
             show_name: true
             template: cgm_trend
             section_mode: true
+          - type: entity
+            entity: switch.cgm_subject_1_notifications
         columns: 5
         grid_options:
           columns: full

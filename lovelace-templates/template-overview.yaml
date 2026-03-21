@@ -1,7 +1,7 @@
 type: sections
 max_columns: 4
 title: Overview
-path: sandbox
+path: overview
 sections:
   - type: grid
     cards:
