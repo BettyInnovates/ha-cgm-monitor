@@ -1,12 +1,10 @@
-# TODO Feature "Subject Events"
+# TODO Refactoring "Notification Automations"
 
-- It should be possible to manually and automatically save events per subject.
-- There should be a form on the subject detail page to add and delete events.
+To make more use of declarative configuration and flexibility the notification notifications should be refactored.
 
-Requirements:
-  - Events should hold metadata that can be used later on for reporting and summaries (even calculated: like average, sum/day of an attribute)
-  - Events should be visible in apexcharts and other ha charts.
-  - Adding/Deleting events should be a service call, so it can be used in other places like automations.
+- ha automations should be used for the notification automation (will be configured manually, template in templates/)
+- the entity for disabling notifications per subject should be removed (will be covered by enabling/disabling the automation)
+- there should be a service to trigger the notifications via ha automation for a specific subject
+- targets for the notifications should be configured in the automation (removed from configuration, hint: fix documentation)
 
-Ideas:
-  - I would prefer a calendar or similar feature/data structure be used to save those events, to make use of the existing calendar features.
+- clean leftovers in code
