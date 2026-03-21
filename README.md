@@ -65,3 +65,4 @@ For better UI:
 - https://github.com/RomRider/apexcharts-card (Better charts)
 - https://github.com/Nerwyn/custom-card-features (Actions card features)
 - https://github.com/ofekashery/vertical-stack-in-card (Vertical stack card)
+- https://github.com/thomasloven/hass-browser_mod (reload page)

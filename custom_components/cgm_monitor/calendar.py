@@ -118,18 +118,21 @@ class CgmCalendarEntity(CalendarEntity):
     def event(self) -> CalendarEvent | None:
         """Return the next upcoming event, or the most recent past event."""
         now = dt_util.now()
-        future = []
-        past = []
+        future: list[dict] = []
+        past: list[dict] = []
         for e in self._store.events:
             try:
                 start = py_dt.datetime.fromisoformat(e[CONF_EVENT_START])
                 if not start.tzinfo:
                     start = dt_util.as_local(start)
-                (future if start >= now else past).append((start, e))
-            except (KeyError, ValueError):
+                (future if start >= now else past).append(e)
+            except (KeyError, ValueError, TypeError):
                 pass
-        candidates = sorted(future, key=lambda x: x[0]) or sorted(past, key=lambda x: x[0], reverse=True)
-        return self._to_calendar_event(candidates[0][1]) if candidates else None
+        if future:
+            return self._to_calendar_event(min(future, key=lambda e: e[CONF_EVENT_START]))
+        if past:
+            return self._to_calendar_event(max(past, key=lambda e: e[CONF_EVENT_START]))
+        return None
 
     async def async_get_events(
         self,

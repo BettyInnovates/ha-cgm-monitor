@@ -231,26 +231,37 @@ sections:
             icon: mdi:content-save-outline
             layout: icon_name
             tap_action:
-              action: call-service
-              service: cgm_monitor.add_event
-              service_data:
-                subject: CGM Subject 2
-                start: >-
-                  [[[ return
-                  states['datetime.cgm_subject_2_event_datetime']?.state; ]]]
-                type: >-
-                  [[[ return states['select.cgm_subject_2_event_type']?.state;
-                  ]]]
-                unit: >-
-                  [[[ return states['select.cgm_subject_2_event_unit']?.state;
-                  ]]]
-                dose: >-
-                  [[[ return
-                  parseFloat(states['number.cgm_subject_2_event_dose']?.state)
-                  || 0; ]]]
-                note: >-
-                  [[[ return states['text.cgm_subject_2_event_note']?.state ||
-                  ''; ]]]
+              action: multi-actions
+              actions:
+                - action: call-service
+                  service: cgm_monitor.add_event
+                  service_data:
+                    subject: CGM Subject 2
+                    start: >-
+                      [[[ return
+                      states['datetime.cgm_subject_2_event_datetime']?.state; ]]]
+                    type: >-
+                      [[[ return states['select.cgm_subject_2_event_type']?.state;
+                      ]]]
+                    unit: >-
+                      [[[ return states['select.cgm_subject_2_event_unit']?.state;
+                      ]]]
+                    dose: >-
+                      [[[ return
+                      parseFloat(states['number.cgm_subject_2_event_dose']?.state)
+                      || 0; ]]]
+                    note: >-
+                      [[[ return states['text.cgm_subject_2_event_note']?.state ||
+                      ''; ]]]
+                - action: navigate
+                  navigation_path: "[[[ return window.location.pathname; ]]]"
+                - action: call-service
+                  service: browser_mod.notification
+                  service_data:
+                    message: Event saved.
+                    duration: 4
+                - action: call-service
+                  service: browser_mod.refresh
             grid_options:
               columns: 2
               rows: 1
