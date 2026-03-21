@@ -13,18 +13,20 @@ add_event:
       example: CGM Subject 1
       selector:
         text:
-    start:
-      name: Date & Time
-      description: When the event occurred.
-      required: true
-      selector:
-        datetime:
-    end:
-      name: End Date & Time
-      description: Optional end time. Defaults to the start time.
+    date:
+      name: Date
+      description: Date of the event (YYYY-MM-DD). Defaults to today if omitted.
       required: false
+      example: "2026-03-21"
       selector:
-        datetime:
+        text:
+    time:
+      name: Time
+      description: Time of the event (HH:MM or HH:MM:SS). Defaults to 12:00 if omitted.
+      required: false
+      example: "14:30"
+      selector:
+        text:
     type:
       name: Event Type
       description: Category of the event.

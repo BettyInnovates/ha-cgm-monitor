@@ -1,5 +1,6 @@
 """CGM Monitor integration."""
 
+import datetime
 import logging
 
 import voluptuous as vol
@@ -8,14 +9,17 @@ from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.reload import async_setup_reload_service
 from homeassistant.helpers.typing import ConfigType
+from homeassistant.util import dt as dt_util
 
 from .const import (
     CALENDARS_KEY,
+    CONF_EVENT_DATE,
     CONF_EVENT_DOSE,
     CONF_EVENT_END,
     CONF_EVENT_NOTE,
     CONF_EVENT_START,
     CONF_EVENT_SUBJECT,
+    CONF_EVENT_TIME,
     CONF_EVENT_TYPE,
     CONF_EVENT_UID,
     CONF_EVENT_UNIT,
@@ -31,8 +35,8 @@ _LOGGER = logging.getLogger(__name__)
 _ADD_EVENT_SCHEMA = vol.Schema(
     {
         vol.Required(CONF_EVENT_SUBJECT): cv.string,
-        vol.Required(CONF_EVENT_START): cv.datetime,
-        vol.Optional(CONF_EVENT_END): cv.datetime,
+        vol.Optional(CONF_EVENT_DATE): cv.string,
+        vol.Optional(CONF_EVENT_TIME): cv.string,
         vol.Required(CONF_EVENT_TYPE): vol.In(EVENT_TYPES),
         vol.Optional(CONF_EVENT_UNIT): vol.In(EVENT_UNITS),
         vol.Optional(CONF_EVENT_DOSE): vol.Coerce(float),
@@ -61,11 +65,18 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
             _LOGGER.error("CGM Monitor add_event: unknown subject '%s'", subject)
             return
 
-        start = call.data[CONF_EVENT_START]
-        end = call.data.get(CONF_EVENT_END, start)
+        date_str = call.data.get(CONF_EVENT_DATE)
+        time_str = call.data.get(CONF_EVENT_TIME)
+        event_date = (
+            datetime.date.fromisoformat(date_str) if date_str else datetime.date.today()
+        )
+        event_time = (
+            datetime.time.fromisoformat(time_str) if time_str else datetime.time(12, 0)
+        )
+        start = dt_util.as_local(datetime.datetime.combine(event_date, event_time))
         event_data = {
             CONF_EVENT_START: start.isoformat(),
-            CONF_EVENT_END: end.isoformat(),
+            CONF_EVENT_END: start.isoformat(),
             CONF_EVENT_TYPE: call.data[CONF_EVENT_TYPE],
             CONF_EVENT_UNIT: call.data.get(CONF_EVENT_UNIT, ""),
             CONF_EVENT_DOSE: call.data.get(CONF_EVENT_DOSE),

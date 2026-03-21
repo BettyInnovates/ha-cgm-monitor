@@ -61,10 +61,11 @@ from .const import (
     STATE_VERY_HIGH,
     STATE_VERY_LOW,
     CALENDAR_LOADED_KEY,
-    DATETIME_LOADED_KEY,
+    DATE_LOADED_KEY,
     EVENT_SELECT_LOADED_KEY,
     SWITCHES_LOADED_KEY,
     TEXT_LOADED_KEY,
+    TIME_LOADED_KEY,
     THRESHOLD_DEFINITIONS,
     UNIT_MG_DL,
 )
@@ -161,11 +162,18 @@ async def async_setup_platform(
             discovery.async_load_platform(hass, "text", DOMAIN, dict(config), hass_config)
         )
 
-    loaded_datetime: set[str] = hass.data.setdefault(DATETIME_LOADED_KEY, set())
-    if sensor_name not in loaded_datetime:
-        loaded_datetime.add(sensor_name)
+    loaded_date: set[str] = hass.data.setdefault(DATE_LOADED_KEY, set())
+    if sensor_name not in loaded_date:
+        loaded_date.add(sensor_name)
         hass.async_create_task(
-            discovery.async_load_platform(hass, "datetime", DOMAIN, dict(config), hass_config)
+            discovery.async_load_platform(hass, "date", DOMAIN, dict(config), hass_config)
+        )
+
+    loaded_time: set[str] = hass.data.setdefault(TIME_LOADED_KEY, set())
+    if sensor_name not in loaded_time:
+        loaded_time.add(sensor_name)
+        hass.async_create_task(
+            discovery.async_load_platform(hass, "time", DOMAIN, dict(config), hass_config)
         )
 
 

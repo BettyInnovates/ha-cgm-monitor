@@ -208,9 +208,12 @@ sections:
         cards:
           - type: entities
             entities:
-              - entity: datetime.cgm_subject_2_event_datetime
-                name: Date & Time
-                icon: mdi:calendar-clock
+              - entity: date.cgm_subject_2_event_date
+                name: Date
+                icon: mdi:calendar
+              - entity: time.cgm_subject_2_event_time
+                name: Time
+                icon: mdi:clock-outline
               - entity: select.cgm_subject_2_event_type
                 name: Type
                 icon: mdi:tag-outline
@@ -237,9 +240,12 @@ sections:
                   service: cgm_monitor.add_event
                   service_data:
                     subject: CGM Subject 2
-                    start: >-
-                      [[[ return
-                      states['datetime.cgm_subject_2_event_datetime']?.state; ]]]
+                    date: >-
+                      [[[ return states['date.cgm_subject_2_event_date']?.state;
+                      ]]]
+                    time: >-
+                      [[[ return states['time.cgm_subject_2_event_time']?.state;
+                      ]]]
                     type: >-
                       [[[ return states['select.cgm_subject_2_event_type']?.state;
                       ]]]

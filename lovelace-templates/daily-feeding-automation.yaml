@@ -1,0 +1,24 @@
+alias: CGM Subject 1 Add Daily Feeding Events
+description: ""
+triggers:
+  - trigger: time
+    at: "01:00:00"
+conditions: []
+actions:
+  - action: cgm_monitor.add_event
+    data:
+      subject: CGM Subject 1
+      time: "08:00:00"
+      type: Meal
+      unit: BE
+      dose: 7
+      note: Auto
+  - action: cgm_monitor.add_event
+    data:
+      subject: CGM Subject 1
+      time: "18:00:00"
+      type: Meal
+      unit: BE
+      dose: 7
+      note: Auto
+mode: single
