@@ -1,19 +1,30 @@
-# TODO "move to more entities"
+# TODO Feature Notifications
 
-In the next step, we will move all attributes store in the main sensor entity to separate entities (with correct classes).
+The cgm monitor should send notifications to companion apps depending on the priority state.
 
-The main sensor should hold the glucose value from the original sensor.
+In the configuration there should be a list of devices that should be notified, per subject.
 
-There should be separate entities for:
-- priority (critical,warning,normal)
-- state (low,normal,high, etc.)
-- trend (from original sensor, falling slightly, etc.)
+```yaml
+sensor:
+  - platform: cgm_monitor
+    name: "CGM Subject 1"
+    glucose_sensor: "sensor.glucose_random_blood_sugar_01_value"
+    trend_sensor: "sensor.glucose_random_trend_01_trend"
+    # ...
+    notify:
+      - device_tracker.mobile1
+      - device_tracker.mobile2
+```
 
-The main sensor py and class should be refactored to reflect this in a very clean and readable way.
+- Notifications should only be sent to the device tracker of the device.
+- There should be a binary sensor for each subject to enable or disable notifications.
+- Alarm priority should be, depending on the priority state:
+    - warning: notification (push notification)
+    - critical: critical (push notification + android alarm)
 
-All templates in lovelace-templates need to be reworked for the new entities. Since there are a lot of workarounds in the templates,
-to access attributes, those should be replaced with the easier way with the new entities.
+Notification:
+- Title: "CGM Warning"
+- Message: "Subject 1: 123 mg/dL, State: High, Trend: High, Priority: Warning"
 
-Short documentation should be added to the README.md, containing all the new entities.
-
-DONE
+- After executing the notification event, there should be an attribute added to the priority state, to keep track if the notification has been sent already.
+- Also if the attribute is set, the notification should not be sent again.
