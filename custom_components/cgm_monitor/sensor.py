@@ -333,6 +333,16 @@ class CgmCoordinator:
             except Exception as err:
                 _LOGGER.warning("Failed to notify via %s: %s", service_name, err)
 
+        await self._hass.services.async_call(
+            "persistent_notification",
+            "create",
+            {
+                "title": title,
+                "message": message,
+                "notification_id": f"cgm_monitor_{self._name_slug}",
+            },
+        )
+
         self._last_notified_priority = self._priority
         for entity in self._entities:
             if entity.hass is not None:
