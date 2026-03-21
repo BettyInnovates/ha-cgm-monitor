@@ -58,7 +58,6 @@ PRIORITY_STATES: Final[list[str]] = [PRIORITY_CRITICAL, PRIORITY_WARNING, PRIORI
 
 UNIT_MG_DL: Final = "mg/dL"
 NUMBERS_LOADED_KEY = f"{DOMAIN}_numbers_loaded"
-SWITCHES_LOADED_KEY = f"{DOMAIN}_switches_loaded"
 EVENT_SELECT_LOADED_KEY = f"{DOMAIN}_event_select_loaded"
 CALENDAR_LOADED_KEY = f"{DOMAIN}_calendar_loaded"
 TEXT_LOADED_KEY = f"{DOMAIN}_text_loaded"
@@ -86,8 +85,6 @@ CONF_EVENT_UID = "uid"
 
 # ── Notification configuration ────────────────────────────────────────────────
 
-CONF_NOTIFY_DEVICES = "notify"
-ATTR_NOTIFICATION_SENT = "notification_sent"
 NOTIFY_TITLE_WARNING = "CGM Warning"
 NOTIFY_TITLE_CRITICAL = "CGM Critical"
 

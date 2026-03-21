@@ -1,0 +1,34 @@
+alias: CGM Subject 1 Notifications
+description: >
+  Send push notifications when the CGM priority changes to warning or critical.
+  Disable this automation to suppress notifications for this subject.
+  Configure the notify target(s) in the action section below.
+triggers:
+  - trigger: state
+    entity_id: sensor.cgm_subject_1_priority
+    to:
+      - warning
+      - critical
+conditions:
+  - condition: template
+    value_template: >
+      {{ trigger.from_state.state != trigger.to_state.state }}
+actions:
+  - action: cgm_monitor.send_notification
+    data:
+      subject: CGM Subject 1
+      target: notify.mobile_app_myphone
+  - action: persistent_notification.create
+    data:
+      title: >
+        {% if trigger.to_state is defined %}
+          {{ 'CGM Warning' if trigger.to_state.state == 'warning' else 'CGM Critical' }}
+        {% else %}
+          CGM Critical - No new State
+        {% endif %}
+      message: >
+        CGM Subject 1: {{ states('sensor.cgm_subject_1') }} mg/dL, 
+        State: {{ states('sensor.cgm_subject_1_state') }}, 
+        Trend: {{ states('sensor.cgm_subject_1_trend') }}
+      notification_id: cgm_subject_1_notification
+mode: single

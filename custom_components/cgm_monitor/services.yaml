@@ -79,3 +79,27 @@ delete_event:
       required: true
       selector:
         text:
+
+send_notification:
+  name: Send CGM Notification
+  description: >
+    Send a push notification for a subject's current glucose state.
+    Intended to be called from an automation that handles trigger conditions
+    and configures the notification target.
+  fields:
+    subject:
+      name: Subject
+      description: The configured CGM subject name, e.g. "CGM Subject 1".
+      required: true
+      example: CGM Subject 1
+      selector:
+        text:
+    target:
+      name: Target
+      description: >
+        Notify service to call. Use the full service name like
+        "notify.mobile_app_myphone" or just "mobile_app_myphone".
+      required: true
+      example: notify.mobile_app_myphone
+      selector:
+        text:

@@ -58,6 +58,86 @@ Per-sensor overrides can be added in `configuration.yaml`. An override replaces 
 
 Changes to `default-priority-mapping.yaml` take effect after triggering the CGM Monitor reload service — no HA core restart needed.
 
+## Notifications
+
+Notifications are driven by HA automations, giving you full control over when and how you are notified. Enable or disable notifications per subject by enabling/disabling the corresponding automation.
+
+A template automation is provided in `templates/automation/notification-automation.yaml`. Import it, adjust the subject name and notify target, and you're done.
+
+### Example automation
+
+```yaml
+alias: CGM Subject 1 Notifications
+description: >
+  Send push notifications when the CGM priority changes to warning or critical.
+  Disable this automation to suppress notifications for this subject.
+  Configure the notify target(s) in the action section below.
+triggers:
+  - trigger: state
+    entity_id: sensor.cgm_subject_1_priority
+    to:
+      - warning
+      - critical
+conditions:
+  - condition: template
+    value_template: >
+      {{ trigger.from_state.state != trigger.to_state.state }}
+actions:
+  - action: cgm_monitor.send_notification
+    data:
+      subject: CGM Subject 1
+      target: notify.mobile_app_myphone
+  - action: persistent_notification.create
+    data:
+      title: >
+        {% if trigger.to_state is defined %}
+          {{ 'CGM Warning' if trigger.to_state.state == 'warning' else 'CGM Critical' }}
+        {% else %}
+          CGM Critical - No new State
+        {% endif %}
+      message: >
+        CGM Subject 1: {{ states('sensor.cgm_subject_1') }} mg/dL, 
+        State: {{ states('sensor.cgm_subject_1_state') }}, 
+        Trend: {{ states('sensor.cgm_subject_1_trend') }}
+      notification_id: cgm_subject_1_notification
+mode: single
+```
+
+## Subject Events
+
+Each subject gets a calendar entity and a set of helper entities for logging events (insulin doses, meals, etc.) directly from the dashboard.
+
+| Entity ID | Domain | Description |
+|---|---|---|
+| `calendar.cgm_subject_1_events` | `calendar` | Event calendar, visible in the HA calendar card and UI. |
+| `select.cgm_subject_1_event_type` | `select` | Event type picker: `Insulin`, `Meal`, `Custom`. |
+| `select.cgm_subject_1_event_unit` | `select` | Dose unit picker: `IU`, `BE`. |
+| `number.cgm_subject_1_event_dose` | `number` | Dose amount (0–100, step 0.5). |
+| `text.cgm_subject_1_event_note` | `text` | Free-text note. |
+| `date.cgm_subject_1_event_date` | `date` | Event date (defaults to today). |
+| `time.cgm_subject_1_event_time` | `time` | Event time (defaults to 12:00). |
+
+### Services
+
+**`cgm_monitor.add_event`** — Add an event to a subject's calendar.
+
+| Field | Required | Description |
+|---|---|---|
+| `subject` | yes | Subject name, e.g. `CGM Subject 1` |
+| `type` | yes | `Insulin`, `Meal`, or `Custom` |
+| `date` | no | Date in `YYYY-MM-DD` format. Defaults to today. |
+| `time` | no | Time in `HH:MM` format. Defaults to `12:00`. |
+| `unit` | no | `IU` or `BE` |
+| `dose` | no | Numeric dose amount |
+| `note` | no | Free-text note |
+
+**`cgm_monitor.delete_event`** — Remove an event by its UID.
+
+| Field | Required | Description |
+|---|---|---|
+| `subject` | yes | Subject name |
+| `uid` | yes | Event UID (shown in the calendar event details) |
+
 ## HACS addons
 
 For better UI:
