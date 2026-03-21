@@ -13,9 +13,11 @@ sections:
             template: cgm_priority
             entity: sensor.cgm_subject_2_priority
             show_name: true
+            show_state: true
           - type: custom:button-card
             entity: sensor.cgm_subject_2_state
-            show_name: false
+            show_name: true
+            name: State
             template: cgm_state_badge
             section_mode: true
           - type: custom:button-card
@@ -28,7 +30,7 @@ sections:
             show_name: true
             template: cgm_trend
             section_mode: true
-        columns: 4
+        columns: 2
         grid_options:
           columns: full
     column_span: 4
@@ -228,7 +230,7 @@ sections:
         type: grid
         cards:
           - type: custom:button-card
-            name: Save
+            name: Add Event
             icon: mdi:content-save-outline
             layout: icon_name
             tap_action:
@@ -245,18 +247,18 @@ sections:
                       [[[ return states['time.cgm_subject_2_event_time']?.state;
                       ]]]
                     type: >-
-                      [[[ return states['select.cgm_subject_2_event_type']?.state;
-                      ]]]
+                      [[[ return
+                      states['select.cgm_subject_2_event_type']?.state; ]]]
                     unit: >-
-                      [[[ return states['select.cgm_subject_2_event_unit']?.state;
-                      ]]]
+                      [[[ return
+                      states['select.cgm_subject_2_event_unit']?.state; ]]]
                     dose: >-
                       [[[ return
                       parseFloat(states['number.cgm_subject_2_event_dose']?.state)
                       || 0; ]]]
                     note: >-
-                      [[[ return states['text.cgm_subject_2_event_note']?.state ||
-                      ''; ]]]
+                      [[[ return states['text.cgm_subject_2_event_note']?.state
+                      || ''; ]]]
                 - action: navigate
                   navigation_path: "[[[ return window.location.pathname; ]]]"
                 - action: call-service
@@ -281,6 +283,7 @@ sections:
               icon:
                 - color: white
                 - width: 18px
+        columns: 2
 header:
   card:
     type: markdown
