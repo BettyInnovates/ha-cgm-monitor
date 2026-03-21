@@ -58,6 +58,14 @@ PRIORITY_STATES: Final[list[str]] = [PRIORITY_CRITICAL, PRIORITY_WARNING, PRIORI
 
 UNIT_MG_DL: Final = "mg/dL"
 NUMBERS_LOADED_KEY = f"{DOMAIN}_numbers_loaded"
+SWITCHES_LOADED_KEY = f"{DOMAIN}_switches_loaded"
+
+# ── Notification configuration ────────────────────────────────────────────────
+
+CONF_NOTIFY_DEVICES = "notify"
+ATTR_NOTIFICATION_SENT = "notification_sent"
+NOTIFY_TITLE_WARNING = "CGM Warning"
+NOTIFY_TITLE_CRITICAL = "CGM Critical"
 
 # (conf_key, default, human-readable label)
 THRESHOLD_DEFINITIONS: Final[list[tuple[str, float, str]]] = [
