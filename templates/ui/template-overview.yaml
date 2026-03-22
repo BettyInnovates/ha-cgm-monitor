@@ -16,8 +16,6 @@ sections:
             template: t_overview_subject_main
             entities:
               - entity: sensor.cgm_subject_1
-                template: t_overview_subject_icon
-              - entity: sensor.cgm_subject_1
                 template: t_overview_subject_value
               - entity: sensor.cgm_subject_1_trend
                 template: t_overview_subject_trend_icon
@@ -33,8 +31,6 @@ sections:
             type: custom:advanced-entities-row
             template: t_overview_subject_main
             entities:
-              - entity: sensor.cgm_subject_2
-                template: t_overview_subject_icon
               - entity: sensor.cgm_subject_2
                 template: t_overview_subject_value
               - entity: sensor.cgm_subject_2_trend
@@ -59,8 +55,6 @@ sections:
             template: t_overview_subject_main
             entities:
               - entity: sensor.cgm_subject_3
-                template: t_overview_subject_icon
-              - entity: sensor.cgm_subject_3
                 template: t_overview_subject_value
               - entity: sensor.cgm_subject_3_trend
                 template: t_overview_subject_trend_icon
@@ -76,8 +70,6 @@ sections:
             type: custom:advanced-entities-row
             template: t_overview_subject_main
             entities:
-              - entity: sensor.cgm_subject_4
-                template: t_overview_subject_icon
               - entity: sensor.cgm_subject_4
                 template: t_overview_subject_value
               - entity: sensor.cgm_subject_4_trend
@@ -95,14 +87,12 @@ sections:
             template: t_overview_subject_main
             entities:
               - entity: sensor.cgm_subject_5
-                template: t_overview_subject_icon
-              - entity: sensor.cgm_subject_5
                 template: t_overview_subject_value
               - entity: sensor.cgm_subject_5_trend
                 template: t_overview_subject_trend_icon
             tap_action:
               action: navigate
-              navigation_path: /cgm-monitor/cgm-subject-3
+              navigation_path: /cgm-monitor/cgm-subject-5
         grid_options:
           columns: 48
           rows: auto
@@ -112,8 +102,6 @@ sections:
             type: custom:advanced-entities-row
             template: t_overview_subject_main
             entities:
-              - entity: sensor.cgm_subject_6
-                template: t_overview_subject_icon
               - entity: sensor.cgm_subject_6
                 template: t_overview_subject_value
               - entity: sensor.cgm_subject_6_trend
@@ -131,8 +119,6 @@ sections:
             template: t_overview_subject_main
             entities:
               - entity: sensor.cgm_subject_7
-                template: t_overview_subject_icon
-              - entity: sensor.cgm_subject_7
                 template: t_overview_subject_value
               - entity: sensor.cgm_subject_7_trend
                 template: t_overview_subject_trend_icon
@@ -149,14 +135,12 @@ sections:
             template: t_overview_subject_main
             entities:
               - entity: sensor.cgm_subject_8
-                template: t_overview_subject_icon
-              - entity: sensor.cgm_subject_8
                 template: t_overview_subject_value
               - entity: sensor.cgm_subject_8_trend
                 template: t_overview_subject_trend_icon
             tap_action:
               action: navigate
-              navigation_path: /cgm-monitor/cgm-subject-3
+              navigation_path: /cgm-monitor/cgm-subject-8
         grid_options:
           columns: 48
           rows: auto

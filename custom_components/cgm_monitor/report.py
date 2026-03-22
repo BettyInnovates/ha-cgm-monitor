@@ -2,6 +2,7 @@
 
 import csv
 import logging
+import shutil
 from datetime import date as py_date, datetime, time as py_time
 from pathlib import Path
 
@@ -119,6 +120,9 @@ def _write_csv(path: Path, rows: list[dict], fieldnames: list[str]) -> None:
 
 async def async_export_report(hass: HomeAssistant, report_date: py_date) -> list[Path]:
     """Export glucose history and calendar events to CSV for every subject."""
+    out = Path(hass.config.config_dir) / REPORTS_DIR / report_date.isoformat()
+    if out.exists():
+        await hass.async_add_executor_job(shutil.rmtree, out)
     out = _out_dir(hass, report_date)
     date_str = report_date.isoformat()
     start_dt = dt_util.as_local(datetime.combine(report_date, py_time.min))
@@ -498,6 +502,13 @@ async def async_send_report(
     out = _out_dir(hass, report_date)
     date_str = report_date.isoformat()
     stores: dict = hass.data.get(DOMAIN, {}).get(STORES_KEY, {})
+
+    # HA's SMTP component validates attachment paths against allowlist_external_dirs.
+    # Add the reports root so all dated subfolders are accepted.
+    reports_root = Path(hass.config.config_dir) / REPORTS_DIR
+    hass.config.allowlist_external_dirs = frozenset(
+        hass.config.allowlist_external_dirs | {reports_root}
+    )
 
     attachments: list[str] = []
 
