@@ -1,0 +1,16 @@
+alias: Daily reports
+description: ""
+triggers:
+  - trigger: time
+    at: "01:50:00"
+conditions: []
+actions:
+  - action: cgm_monitor.export_report
+    data: {}
+  - action: cgm_monitor.generate_report
+    data: {}
+  - action: cgm_monitor.send_report
+    data:
+      notify_service: notify.sdf
+      recipients: lr86gm@gmail.com
+mode: single
