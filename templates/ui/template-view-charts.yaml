@@ -98,3 +98,29 @@ sections:
         grid_options:
           columns: full
     column_span: 4
+  - type: grid
+    cards:
+      - type: history-graph
+        entities:
+          - entity: sensor.cgm_subject_1
+          - entity: sensor.cgm_subject_2
+        min_y_axis: 0
+        max_y_axis: 400
+        title: Cohort 1
+        grid_options:
+          columns: full
+      - type: history-graph
+        entities:
+          - entity: sensor.cgm_subject_3
+          - entity: sensor.cgm_subject_4
+          - entity: sensor.cgm_subject_5
+          - entity: sensor.cgm_subject_6
+          - entity: sensor.cgm_subject_7
+          - entity: sensor.cgm_subject_8
+        min_y_axis: 0
+        max_y_axis: 400
+        fit_y_data: true
+        grid_options:
+          columns: full
+    column_span: 4
+cards: []

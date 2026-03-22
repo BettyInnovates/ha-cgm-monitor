@@ -5,5 +5,6 @@
   "codeowners": [],
   "documentation": "https://github.com/BettyInnovates/ha-cgm-monitor/",
   "iot_class": "calculated",
+  "requirements": [],
   "version": "0.1.0"
 }

@@ -1,36 +1,36 @@
 type: sections
 max_columns: 4
-title: CGM Subject 2
-path: cgm-subject-2
+title: CGM Subject 1
+path: cgm-subject-1
 icon: mdi:diabetes
 sections:
   - type: grid
     cards:
-      - square: false
-        type: grid
-        cards:
-          - type: custom:button-card
-            template: cgm_priority
-            entity: sensor.cgm_subject_2_priority
-            show_name: true
-            show_state: true
-          - type: custom:button-card
-            entity: sensor.cgm_subject_2_state
-            show_name: true
-            name: State
-            template: cgm_state_badge
-            section_mode: true
-          - type: custom:button-card
-            entity: sensor.cgm_subject_2
-            show_name: true
-            template: cgm_glucose
-            section_mode: true
-          - type: custom:button-card
-            entity: sensor.cgm_subject_2_trend
-            show_name: true
-            template: cgm_trend
-            section_mode: true
-        columns: 2
+      - type: entities
+        entities:
+          - type: custom:advanced-entities-row
+            entity: sensor.cgm_subject_1
+            template: t_subject
+            name: Glucose
+            secondary_info: last-changed
+        grid_options:
+          columns: full
+      - type: entities
+        entities:
+          - type: custom:advanced-entities-row
+            entity: sensor.cgm_subject_1_priority
+            template: t_subject_priority
+            name: Priority
+            secondary_info: last-changed
+        grid_options:
+          columns: full
+      - type: entities
+        entities:
+          - type: custom:advanced-entities-row
+            entity: sensor.cgm_subject_1_trend
+            template: t_subject_trend
+            name: Trend
+            secondary_info: last-changed
         grid_options:
           columns: full
     column_span: 4
@@ -74,7 +74,7 @@ sections:
                 x:
                   format: HH:mm dd/MM
             series:
-              - entity: number.cgm_subject_2_critical_low_threshold
+              - entity: number.cgm_subject_1_critical_low_threshold
                 name: Critical Low
                 color: "#c62828"
                 stroke_width: 1.5
@@ -84,7 +84,7 @@ sections:
                   legend_value: true
                   in_header: false
                   datalabels: false
-              - entity: number.cgm_subject_2_very_low_threshold
+              - entity: number.cgm_subject_1_very_low_threshold
                 name: Very Low
                 color: "#e53935"
                 stroke_width: 1.5
@@ -94,7 +94,7 @@ sections:
                   legend_value: true
                   in_header: false
                   datalabels: false
-              - entity: number.cgm_subject_2_low_threshold
+              - entity: number.cgm_subject_1_low_threshold
                 name: Low
                 color: "#fb8c00"
                 stroke_width: 1.5
@@ -104,7 +104,7 @@ sections:
                   legend_value: true
                   in_header: false
                   datalabels: false
-              - entity: number.cgm_subject_2_high_threshold
+              - entity: number.cgm_subject_1_high_threshold
                 name: High
                 color: "#fb8c00"
                 stroke_width: 1.5
@@ -114,7 +114,7 @@ sections:
                   legend_value: true
                   in_header: false
                   datalabels: false
-              - entity: number.cgm_subject_2_very_high_threshold
+              - entity: number.cgm_subject_1_very_high_threshold
                 name: Very High
                 color: "#e53935"
                 stroke_width: 1.5
@@ -144,35 +144,35 @@ sections:
         type: grid
         cards:
           - type: custom:button-card
-            entity: number.cgm_subject_2_very_high_threshold
+            entity: number.cgm_subject_1_very_high_threshold
             show_name: true
             name: Very High
             show_state: true
             show_icon: true
             icon: mdi:arrow-up-bold
           - type: custom:button-card
-            entity: number.cgm_subject_2_high_threshold
+            entity: number.cgm_subject_1_high_threshold
             show_name: true
             name: High
             show_state: true
             show_icon: true
             icon: mdi:arrow-top-right
           - type: custom:button-card
-            entity: number.cgm_subject_2_low_threshold
+            entity: number.cgm_subject_1_low_threshold
             show_name: true
             name: Low
             show_state: true
             show_icon: true
             icon: mdi:arrow-bottom-right
           - type: custom:button-card
-            entity: number.cgm_subject_2_very_low_threshold
+            entity: number.cgm_subject_1_very_low_threshold
             show_name: true
             name: Very Low
             show_state: true
             show_icon: true
             icon: mdi:arrow-down-bold
           - type: custom:button-card
-            entity: number.cgm_subject_2_critical_low_threshold
+            entity: number.cgm_subject_1_critical_low_threshold
             show_name: true
             name: Critical Low
             show_state: true
@@ -192,7 +192,7 @@ sections:
       - initial_view: listWeek
         type: calendar
         entities:
-          - calendar.cgm_subject_2_events
+          - calendar.cgm_subject_1_events
         grid_options:
           columns: full
           rows: 6
@@ -208,22 +208,22 @@ sections:
         cards:
           - type: entities
             entities:
-              - entity: date.cgm_subject_2_event_date
+              - entity: date.cgm_subject_1_event_date
                 name: Date
                 icon: mdi:calendar
-              - entity: time.cgm_subject_2_event_time
+              - entity: time.cgm_subject_1_event_time
                 name: Time
                 icon: mdi:clock-outline
-              - entity: select.cgm_subject_2_event_type
+              - entity: select.cgm_subject_1_event_type
                 name: Type
                 icon: mdi:tag-outline
-              - entity: select.cgm_subject_2_event_unit
+              - entity: select.cgm_subject_1_event_unit
                 name: Unit
                 icon: mdi:scale
-              - entity: number.cgm_subject_2_event_dose
+              - entity: number.cgm_subject_1_event_dose
                 name: Dose
                 icon: mdi:needle
-              - entity: text.cgm_subject_2_event_note
+              - entity: text.cgm_subject_1_event_note
                 name: Note
                 icon: mdi:text
       - square: false
@@ -239,25 +239,25 @@ sections:
                 - action: call-service
                   service: cgm_monitor.add_event
                   service_data:
-                    subject: CGM Subject 2
+                    subject: CGM Subject 1
                     date: >-
-                      [[[ return states['date.cgm_subject_2_event_date']?.state;
+                      [[[ return states['date.cgm_subject_1_event_date']?.state;
                       ]]]
                     time: >-
-                      [[[ return states['time.cgm_subject_2_event_time']?.state;
+                      [[[ return states['time.cgm_subject_1_event_time']?.state;
                       ]]]
                     type: >-
                       [[[ return
-                      states['select.cgm_subject_2_event_type']?.state; ]]]
+                      states['select.cgm_subject_1_event_type']?.state; ]]]
                     unit: >-
                       [[[ return
-                      states['select.cgm_subject_2_event_unit']?.state; ]]]
+                      states['select.cgm_subject_1_event_unit']?.state; ]]]
                     dose: >-
                       [[[ return
-                      parseFloat(states['number.cgm_subject_2_event_dose']?.state)
+                      parseFloat(states['number.cgm_subject_1_event_dose']?.state)
                       || 0; ]]]
                     note: >-
-                      [[[ return states['text.cgm_subject_2_event_note']?.state
+                      [[[ return states['text.cgm_subject_1_event_note']?.state
                       || ''; ]]]
                 - action: navigate
                   navigation_path: "[[[ return window.location.pathname; ]]]"
@@ -288,5 +288,5 @@ header:
   card:
     type: markdown
     text_only: true
-    content: "# CGM Subject 2"
+    content: "# CGM Subject 1"
 cards: []

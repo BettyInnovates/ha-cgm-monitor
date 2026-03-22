@@ -80,6 +80,65 @@ delete_event:
       selector:
         text:
 
+export_report:
+  name: Export CGM Report
+  description: >
+    Export glucose history and calendar events to CSV files for all subjects.
+    Files are written to {config_dir}/cgm_reports/.
+    Defaults to yesterday if no date is given.
+  fields:
+    date:
+      name: Date
+      description: Date to export in YYYY-MM-DD format. Defaults to yesterday.
+      required: false
+      example: "2026-03-21"
+      selector:
+        text:
+
+generate_report:
+  name: Generate CGM Report
+  description: >
+    Read the exported CSVs, merge them into a full.csv per subject, generate
+    a glucose SVG chart per subject, and produce a self-contained HTML report
+    with all charts embedded. Run export_report first.
+  fields:
+    date:
+      name: Date
+      description: Date to generate report for in YYYY-MM-DD format. Defaults to yesterday.
+      required: false
+      example: "2026-03-21"
+      selector:
+        text:
+
+send_report:
+  name: Send CGM Report
+  description: >
+    Send all report files (CSVs + PDF) for a given date as email via a
+    configured HA notify (SMTP) service. Run export_report and generate_report first.
+  fields:
+    notify_service:
+      name: Notify Service
+      description: >
+        The configured HA notify service to use, e.g. "notify.my_smtp".
+      required: true
+      example: notify.my_smtp
+      selector:
+        text:
+    recipients:
+      name: Recipients
+      description: Comma-separated list of email addresses.
+      required: true
+      example: "doctor@example.com, caregiver@example.com"
+      selector:
+        text:
+    date:
+      name: Date
+      description: Date of the report in YYYY-MM-DD format. Defaults to yesterday.
+      required: false
+      example: "2026-03-21"
+      selector:
+        text:
+
 send_notification:
   name: Send CGM Notification
   description: >

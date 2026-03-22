@@ -64,6 +64,20 @@ _SEND_NOTIFICATION_SCHEMA = vol.Schema(
     }
 )
 
+_REPORT_DATE_SCHEMA = {vol.Optional("date"): cv.string}
+
+_EXPORT_REPORT_SCHEMA = vol.Schema(_REPORT_DATE_SCHEMA)
+
+_GENERATE_REPORT_SCHEMA = vol.Schema(_REPORT_DATE_SCHEMA)
+
+_SEND_REPORT_SCHEMA = vol.Schema(
+    {
+        vol.Required("notify_service"): cv.string,
+        vol.Required("recipients"): cv.string,
+        **_REPORT_DATE_SCHEMA,
+    }
+)
+
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Set up the CGM Monitor integration and register the reload service."""
@@ -180,8 +194,29 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
         except Exception as err:
             _LOGGER.error("CGM Monitor send_notification: failed to call %s.%s: %s", domain, service_name, err)
 
+    from .report import async_export_report, async_generate_report, async_send_report
+
+    def _parse_report_date(call: ServiceCall) -> datetime.date:
+        date_str = call.data.get("date")
+        if date_str:
+            return datetime.date.fromisoformat(date_str)
+        return datetime.date.today() - datetime.timedelta(days=1)
+
+    async def handle_export_report(call: ServiceCall) -> None:
+        await async_export_report(hass, _parse_report_date(call))
+
+    async def handle_generate_report(call: ServiceCall) -> None:
+        await async_generate_report(hass, _parse_report_date(call))
+
+    async def handle_send_report(call: ServiceCall) -> None:
+        recipients = [r.strip() for r in call.data["recipients"].split(",") if r.strip()]
+        await async_send_report(hass, _parse_report_date(call), call.data["notify_service"], recipients)
+
     hass.services.async_register(DOMAIN, "add_event", handle_add_event, schema=_ADD_EVENT_SCHEMA)
     hass.services.async_register(DOMAIN, "delete_event", handle_delete_event, schema=_DELETE_EVENT_SCHEMA)
     hass.services.async_register(DOMAIN, "send_notification", handle_send_notification, schema=_SEND_NOTIFICATION_SCHEMA)
+    hass.services.async_register(DOMAIN, "export_report", handle_export_report, schema=_EXPORT_REPORT_SCHEMA)
+    hass.services.async_register(DOMAIN, "generate_report", handle_generate_report, schema=_GENERATE_REPORT_SCHEMA)
+    hass.services.async_register(DOMAIN, "send_report", handle_send_report, schema=_SEND_REPORT_SCHEMA)
 
     return True

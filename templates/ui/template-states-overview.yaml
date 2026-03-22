@@ -1,4 +1,4 @@
-type: custom:vertical-stack-in-card
+type: custom:stack-in-card
 path: graph
 title: Status History
 icon: mdi:state-machine
@@ -8,29 +8,26 @@ cards:
     hours_to_show: 24
     logarithmic_scale: false
     entities:
-      - entity: sensor.cgm_subject_1_state
+      - entity: sensor.cgm_subject_1_priority
         name: Subject 1
-      - entity: sensor.cgm_subject_2_state
+      - entity: sensor.cgm_subject_2_priority
         name: Subject 2
-      - entity: sensor.cgm_subject_3_state
+      - entity: sensor.cgm_subject_3_priority
         name: Subject 3
-      - entity: sensor.cgm_subject_4_state
+      - entity: sensor.cgm_subject_4_priority
         name: Subject 4
-      - entity: sensor.cgm_subject_5_state
+      - entity: sensor.cgm_subject_5_priority
         name: Subject 5
-      - entity: sensor.cgm_subject_6_state
+      - entity: sensor.cgm_subject_6_priority
         name: Subject 6
-      - entity: sensor.cgm_subject_7_state
+      - entity: sensor.cgm_subject_7_priority
         name: Subject 7
-      - entity: sensor.cgm_subject_8_state
+      - entity: sensor.cgm_subject_8_priority
         name: Subject 8
     card_mod:
       style: |
         ha-card {
           --graph-color-1: #c62828;
-          --graph-color-2: #e53935;
-          --graph-color-3: #fb8c00;          
-          --graph-color-3: #43a047;          
-          --graph-color-3: #fb8c00;          
-          --graph-color-3: #e53935;          
+          --graph-color-2: #fb8c00;
+          --graph-color-3: #43a047;
           }
