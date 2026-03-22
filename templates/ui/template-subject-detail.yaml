@@ -33,6 +33,14 @@ sections:
             secondary_info: last-changed
         grid_options:
           columns: full
+      - type: entities
+        entities:
+          - type: custom:advanced-entities-row
+            entity: sensor.cgm_subject_1_target
+            name: Target
+            secondary_info: last-changed
+        grid_options:
+          columns: full
     column_span: 4
   - type: grid
     cards:
