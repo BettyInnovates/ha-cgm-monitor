@@ -12,5 +12,5 @@ actions:
   - action: cgm_monitor.send_report
     data:
       notify_service: notify.sdf
-      recipients: lr86gm@gmail.com
+      recipients: changeme
 mode: single
