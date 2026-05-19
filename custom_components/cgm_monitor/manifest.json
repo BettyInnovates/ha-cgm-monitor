@@ -5,6 +5,6 @@
   "codeowners": [],
   "documentation": "https://github.com/BettyInnovates/ha-cgm-monitor/",
   "iot_class": "calculated",
-  "requirements": [],
+  "requirements": ["pyzipper==0.3.6"],
   "version": "0.1.0"
 }

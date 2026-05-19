@@ -1,15 +1,23 @@
-"""Report generation (export, SVG chart, HTML report, email) for CGM Monitor."""
+"""Report generation (export, SVG chart, HTML report, email, Nextcloud upload) for CGM Monitor."""
 
 import csv
+import io
 import logging
 import shutil
 from datetime import date as py_date, datetime, time as py_time
 from pathlib import Path
 
+import aiohttp
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import aiohttp_client
 from homeassistant.util import dt as dt_util, slugify
 
 from .const import (
+    CONF_NEXTCLOUD_PASSWORD,
+    CONF_NEXTCLOUD_PATH,
+    CONF_NEXTCLOUD_URL,
+    CONF_NEXTCLOUD_USER,
+    CONF_REPORT_ZIP_PASSWORD,
     CONF_CRITICAL_LOW_THRESHOLD,
     CONF_EVENT_DOSE,
     CONF_EVENT_NOTE,
@@ -544,3 +552,66 @@ async def async_send_report(
     _LOGGER.info(
         "CGM Monitor send_report: sent %d files via notify.%s", len(attachments), service_name
     )
+
+
+# ── Nextcloud upload ───────────────────────────────────────────────────────────
+
+
+def _create_encrypted_zip(csv_file: Path, zip_password: bytes) -> bytes:
+    import pyzipper
+    buf = io.BytesIO()
+    with pyzipper.AESZipFile(buf, "w", compression=pyzipper.ZIP_DEFLATED, encryption=pyzipper.WZ_AES) as zf:
+        zf.setpassword(zip_password)
+        zf.write(csv_file, csv_file.name)
+    return buf.getvalue()
+
+
+async def async_upload_report(hass: HomeAssistant, report_date: py_date, nc_config: dict) -> list[str]:
+    """Create AES-256 encrypted ZIP per subject and upload via WebDAV to Nextcloud."""
+    out = _out_dir(hass, report_date)
+    date_str = report_date.isoformat()
+    stores: dict = hass.data.get(DOMAIN, {}).get(STORES_KEY, {})
+
+    nc_url = nc_config[CONF_NEXTCLOUD_URL].rstrip("/")
+    nc_user = nc_config[CONF_NEXTCLOUD_USER]
+    nc_pass = nc_config[CONF_NEXTCLOUD_PASSWORD]
+    nc_path = nc_config.get(CONF_NEXTCLOUD_PATH, "CGM_Reports").strip("/")
+    zip_password = nc_config[CONF_REPORT_ZIP_PASSWORD].encode()
+
+    auth = aiohttp.BasicAuth(nc_user, nc_pass)
+    session = aiohttp_client.async_get_clientsession(hass)
+    uploaded: list[str] = []
+
+    folder_url = f"{nc_url}/remote.php/dav/files/{nc_user}/{nc_path}"
+    try:
+        await session.request("MKCOL", folder_url, auth=auth)
+    except Exception:
+        pass
+
+    for subject_name in stores:
+        prefix = _file_prefix(subject_name)
+        csv_file = out / f"{prefix}_{date_str}.csv"
+
+        if not csv_file.exists():
+            _LOGGER.warning(
+                "CGM Monitor upload_report: no CSV for '%s' on %s — run export_report first",
+                subject_name, date_str,
+            )
+            continue
+
+        zip_data = await hass.async_add_executor_job(_create_encrypted_zip, csv_file, zip_password)
+        zip_filename = f"{prefix}_{date_str}_glucose.zip"
+        upload_url = f"{folder_url}/{zip_filename}"
+
+        resp = await session.put(upload_url, data=zip_data, auth=auth)
+        if resp.status in (200, 201, 204):
+            uploaded.append(zip_filename)
+            _LOGGER.info("CGM Monitor upload_report: uploaded %s", zip_filename)
+        else:
+            body = await resp.text()
+            _LOGGER.error(
+                "CGM Monitor upload_report: failed to upload %s — HTTP %s: %s",
+                zip_filename, resp.status, body[:200],
+            )
+
+    return uploaded

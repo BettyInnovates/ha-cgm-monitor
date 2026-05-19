@@ -83,6 +83,15 @@ CONF_EVENT_START = "start"   # internal storage key only
 CONF_EVENT_END = "end"       # internal storage key only
 CONF_EVENT_UID = "uid"
 
+# ── Nextcloud upload configuration ───────────────────────────────────────────
+
+CONF_NEXTCLOUD = "nextcloud"
+CONF_NEXTCLOUD_URL = "url"
+CONF_NEXTCLOUD_USER = "user"
+CONF_NEXTCLOUD_PASSWORD = "password"
+CONF_NEXTCLOUD_PATH = "path"
+CONF_REPORT_ZIP_PASSWORD = "zip_password"
+
 # ── Notification configuration ────────────────────────────────────────────────
 
 NOTIFY_TITLE_WARNING = "CGM Warning"

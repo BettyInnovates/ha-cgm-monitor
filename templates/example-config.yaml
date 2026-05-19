@@ -1,3 +1,15 @@
+cgm_monitor:
+  nextcloud:
+    url: "https://your-nextcloud.example.com"
+    user: "service_account"
+    password: !secret cgm_nextcloud_password
+    path: "CGM_Reports"        # folder created automatically if it doesn't exist
+    zip_password: !secret cgm_report_zip_password
+
+# secrets.yaml (never commit this file):
+#   cgm_nextcloud_password: "your-nextcloud-app-password"
+#   cgm_report_zip_password: "password-you-share-with-the-customer"
+
 sensor:
   - platform: cgm_monitor
     name: "CGM Subject 1"

@@ -25,6 +25,12 @@ from .const import (
     CONF_EVENT_UID,
     CONF_EVENT_UNIT,
     CONF_HASS_CONFIG,
+    CONF_NEXTCLOUD,
+    CONF_NEXTCLOUD_PASSWORD,
+    CONF_NEXTCLOUD_PATH,
+    CONF_NEXTCLOUD_URL,
+    CONF_NEXTCLOUD_USER,
+    CONF_REPORT_ZIP_PASSWORD,
     DOMAIN,
     EVENT_TYPES,
     EVENT_UNITS,
@@ -37,6 +43,20 @@ from .const import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+_NEXTCLOUD_SCHEMA = vol.Schema({
+    vol.Required(CONF_NEXTCLOUD_URL): cv.string,
+    vol.Required(CONF_NEXTCLOUD_USER): cv.string,
+    vol.Required(CONF_NEXTCLOUD_PASSWORD): cv.string,
+    vol.Optional(CONF_NEXTCLOUD_PATH, default="CGM_Reports"): cv.string,
+    vol.Required(CONF_REPORT_ZIP_PASSWORD): cv.string,
+})
+
+CONFIG_SCHEMA = vol.Schema({
+    DOMAIN: vol.Schema({
+        vol.Optional(CONF_NEXTCLOUD): _NEXTCLOUD_SCHEMA,
+    }),
+}, extra=vol.ALLOW_EXTRA)
 
 _ADD_EVENT_SCHEMA = vol.Schema(
     {
@@ -194,7 +214,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
         except Exception as err:
             _LOGGER.error("CGM Monitor send_notification: failed to call %s.%s: %s", domain, service_name, err)
 
-    from .report import async_export_report, async_generate_report, async_send_report
+    from .report import async_export_report, async_generate_report, async_send_report, async_upload_report
 
     def _parse_report_date(call: ServiceCall) -> datetime.date:
         date_str = call.data.get("date")
@@ -212,11 +232,22 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
         recipients = [r.strip() for r in call.data["recipients"].split(",") if r.strip()]
         await async_send_report(hass, _parse_report_date(call), call.data["notify_service"], recipients)
 
+    async def handle_upload_report(call: ServiceCall) -> None:
+        nc_config = config.get(DOMAIN, {}).get(CONF_NEXTCLOUD)
+        if not nc_config:
+            _LOGGER.error(
+                "CGM Monitor upload_report: no 'nextcloud' block found under '%s' in configuration.yaml",
+                DOMAIN,
+            )
+            return
+        await async_upload_report(hass, _parse_report_date(call), nc_config)
+
     hass.services.async_register(DOMAIN, "add_event", handle_add_event, schema=_ADD_EVENT_SCHEMA)
     hass.services.async_register(DOMAIN, "delete_event", handle_delete_event, schema=_DELETE_EVENT_SCHEMA)
     hass.services.async_register(DOMAIN, "send_notification", handle_send_notification, schema=_SEND_NOTIFICATION_SCHEMA)
     hass.services.async_register(DOMAIN, "export_report", handle_export_report, schema=_EXPORT_REPORT_SCHEMA)
     hass.services.async_register(DOMAIN, "generate_report", handle_generate_report, schema=_GENERATE_REPORT_SCHEMA)
     hass.services.async_register(DOMAIN, "send_report", handle_send_report, schema=_SEND_REPORT_SCHEMA)
+    hass.services.async_register(DOMAIN, "upload_report", handle_upload_report, schema=_EXPORT_REPORT_SCHEMA)
 
     return True

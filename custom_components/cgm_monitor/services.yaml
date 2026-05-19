@@ -139,6 +139,21 @@ send_report:
       selector:
         text:
 
+upload_report:
+  name: Upload CGM Report to Nextcloud
+  description: >
+    Create an AES-256 encrypted ZIP file of the glucose CSV for each subject
+    and upload it via WebDAV to Nextcloud. Requires a 'nextcloud' block in
+    configuration.yaml. Run export_report first.
+  fields:
+    date:
+      name: Date
+      description: Date to upload in YYYY-MM-DD format. Defaults to yesterday.
+      required: false
+      example: "2026-03-21"
+      selector:
+        text:
+
 send_notification:
   name: Send CGM Notification
   description: >
