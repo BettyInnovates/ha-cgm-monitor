@@ -18,3 +18,4 @@ venv/
 CLAUDE.md
 CLAUDE.local.md
 docs/
+.claude/
