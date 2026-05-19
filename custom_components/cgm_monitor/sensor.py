@@ -92,10 +92,10 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
 
 
 async def async_setup_platform(
-    hass: HomeAssistant,
-    config: ConfigType,
-    async_add_entities: AddEntitiesCallback,
-    discovery_info: DiscoveryInfoType | None = None,
+        hass: HomeAssistant,
+        config: ConfigType,
+        async_add_entities: AddEntitiesCallback,
+        discovery_info: DiscoveryInfoType | None = None,
 ) -> None:
     """Set up the CGM Monitor sensor platform."""
     coordinator = CgmCoordinator(hass, config)
@@ -253,7 +253,7 @@ class CgmCoordinator:
         """Update internal readings from a source sensor state change."""
         reading = self._sensormap[entity_id]
         value = new_state.state if new_state is not None else None
-        _LOGGER.debug("Received callback from %s with value %s", entity_id, value)
+        _LOGGER.info("Received callback from %s with value %s, reading %s", entity_id, value, reading)
 
         # None (entity removed) and unknown are non-informative for trend.
         # For glucose they signal a data gap — treat as unavailable → critical priority.

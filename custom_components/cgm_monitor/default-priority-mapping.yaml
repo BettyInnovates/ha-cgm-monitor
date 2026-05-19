@@ -1,4 +1,26 @@
 # TODO check for best default values
+
+# state:
+# - critical_low
+# - very_low
+# - low
+# - ok
+# - high
+# - very_high
+
+# trend:
+# - falling_quickly
+# - falling
+# - falling_slightly
+# - steady
+# - rising_slightly
+# - rising
+# - rising_quickly
+
+# priority:
+# - warning
+# - critical
+
 priority_mapping:
   - state: "critical_low"
     trend: "falling_quickly"
@@ -13,20 +35,25 @@ priority_mapping:
     trend: "steady"
     priority: "critical"
   - state: "critical_low"
-    trend: "raising"
+    trend: "rising_slightly"
     priority: "warning"
+  - state: "critical_low"
+    trend: "rising"
+    priority: "warning"
+
   - state: "very_low"
     trend: "falling_quickly"
     priority: "critical"
   - state: "very_low"
     trend: "falling_slightly"
-    priority: "critical"
+    priority: "warning"
   - state: "very_low"
     trend: "falling"
     priority: "critical"
   - state: "very_low"
     trend: "steady"
     priority: "warning"
+
   - state: "low"
     trend: "falling_quickly"
     priority: "critical"
@@ -36,6 +63,17 @@ priority_mapping:
   - state: "low"
     trend: "falling"
     priority: "warning"
+
+  - state: "high"
+    trend: "rising_quickly"
+    priority: "critical"
+  - state: "high"
+    trend: "rising_slightly"
+    priority: "warning"
+  - state: "high"
+    trend: "rising"
+    priority: "warning"
+
   - state: "very_high"
     trend: "rising_quickly"
     priority: "critical"
