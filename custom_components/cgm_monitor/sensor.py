@@ -91,6 +91,15 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
 )
 
 
+def _load_priority_mapping_file(path: Path) -> dict:
+    try:
+        with open(path) as f:
+            return yaml.safe_load(f) or {}
+    except Exception as err:
+        _LOGGER.warning("Could not load default priority mapping: %s", err)
+        return {}
+
+
 async def async_setup_platform(
         hass: HomeAssistant,
         config: ConfigType,
@@ -98,7 +107,9 @@ async def async_setup_platform(
         discovery_info: DiscoveryInfoType | None = None,
 ) -> None:
     """Set up the CGM Monitor sensor platform."""
-    coordinator = CgmCoordinator(hass, config)
+    defaults_path = Path(__file__).parent / "default-priority-mapping.yaml"
+    mapping_data = await hass.async_add_executor_job(_load_priority_mapping_file, defaults_path)
+    coordinator = CgmCoordinator(hass, config, mapping_data)
 
     entities: list[SensorEntity] = [
         CgmGlucoseSensor(coordinator),
@@ -167,7 +178,7 @@ async def async_setup_platform(
 class CgmCoordinator:
     """Holds all CGM data, subscribes to source sensors, and notifies entities on change."""
 
-    def __init__(self, hass: HomeAssistant, config: ConfigType) -> None:
+    def __init__(self, hass: HomeAssistant, config: ConfigType, mapping_data: dict) -> None:
         self._hass = hass
         self._config = config
         self._name: str = config[CONF_NAME]
@@ -189,7 +200,7 @@ class CgmCoordinator:
         self._priority: str = PRIORITY_NORMAL
 
         self._priority_map = self._build_priority_map(
-            config.get(CONF_PRIORITY_MAPPING_OVERRIDES, [])
+            mapping_data, config.get(CONF_PRIORITY_MAPPING_OVERRIDES, [])
         )
 
         self._entities: list[SensorEntity] = []
@@ -330,19 +341,12 @@ class CgmCoordinator:
         return self._config.get(conf_key, default)
 
     @staticmethod
-    def _build_priority_map(overrides: list[dict]) -> dict[tuple[str, str], str]:
+    def _build_priority_map(data: dict, overrides: list[dict]) -> dict[tuple[str, str], str]:
         """Build a (state, trend) → priority lookup from defaults + config overrides."""
-        defaults_path = Path(__file__).parent / "default-priority-mapping.yaml"
-        try:
-            with open(defaults_path) as f:
-                data = yaml.safe_load(f)
-            priority_map: dict[tuple[str, str], str] = {
-                (entry["state"], entry["trend"]): entry["priority"]
-                for entry in data.get("priority_mapping", [])
-            }
-        except Exception as err:
-            _LOGGER.warning("Could not load default priority mapping: %s", err)
-            priority_map = {}
+        priority_map: dict[tuple[str, str], str] = {
+            (entry["state"], entry["trend"]): entry["priority"]
+            for entry in data.get("priority_mapping", [])
+        }
         for override in overrides:
             priority_map[(override["state"], override["trend"])] = override["priority"]
         return priority_map
