@@ -582,7 +582,7 @@ async def async_upload_report(hass: HomeAssistant, report_date: py_date, nc_conf
     session = aiohttp_client.async_get_clientsession(hass)
     uploaded: list[str] = []
 
-    folder_url = f"{nc_url}/remote.php/dav/files/{nc_user}/{nc_path}"
+    folder_url = f"{nc_url}/remote.php/webdav/{nc_path}"
     try:
         await session.request("MKCOL", folder_url, auth=auth)
     except Exception:
