@@ -39,6 +39,12 @@ add_event:
             - Insulin
             - Weighing
             - Custom
+    initials:
+      name: Initials
+      description: Initials of the person (1–4 characters), e.g. "AUTO".
+      required: false
+      selector:
+        text:
     unit:
       name: Unit
       description: Unit for the dose (IU = insulin units, g Carbs = grams of carbohydrates, kg = kilograms, — = no unit).
