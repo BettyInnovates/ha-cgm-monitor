@@ -430,4 +430,10 @@ class CgmTrendSensor(_CgmEntity):
 
     @property
     def native_value(self) -> str | None:
-        return self._coordinator.trend
+        raw = self._coordinator.trend
+        if raw is None:
+            return None
+        try:
+            return str(round(float(raw), 2))
+        except ValueError:
+            return raw
