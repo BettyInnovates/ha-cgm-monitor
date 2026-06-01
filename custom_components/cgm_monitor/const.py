@@ -78,6 +78,7 @@ CONF_EVENT_TIME = "time"
 CONF_EVENT_TYPE = "type"
 CONF_EVENT_UNIT = "unit"
 CONF_EVENT_DOSE = "dose"
+CONF_EVENT_INITIALS = "initials"
 CONF_EVENT_NOTE = "note"
 CONF_EVENT_START = "start"   # internal storage key only
 CONF_EVENT_END = "end"       # internal storage key only

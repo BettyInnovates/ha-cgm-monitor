@@ -17,6 +17,7 @@ from .const import (
     CONF_EVENT_DATE,
     CONF_EVENT_DOSE,
     CONF_EVENT_END,
+    CONF_EVENT_INITIALS,
     CONF_EVENT_NOTE,
     CONF_EVENT_START,
     CONF_EVENT_SUBJECT,
@@ -73,6 +74,7 @@ _ADD_EVENT_SCHEMA = vol.Schema(
         vol.Required(CONF_EVENT_TYPE): vol.In(EVENT_TYPES),
         vol.Optional(CONF_EVENT_UNIT): vol.In(EVENT_UNITS),
         vol.Optional(CONF_EVENT_DOSE): vol.Coerce(float),
+        vol.Optional(CONF_EVENT_INITIALS, default=""): vol.All(cv.string, vol.Length(max=3)),
         vol.Optional(CONF_EVENT_NOTE, default=""): cv.string,
     }
 )
@@ -132,6 +134,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
             CONF_EVENT_START: start.isoformat(),
             CONF_EVENT_END: start.isoformat(),
             CONF_EVENT_TYPE: call.data[CONF_EVENT_TYPE],
+            CONF_EVENT_INITIALS: call.data.get(CONF_EVENT_INITIALS, ""),
             CONF_EVENT_UNIT: call.data.get(CONF_EVENT_UNIT, ""),
             CONF_EVENT_DOSE: call.data.get(CONF_EVENT_DOSE),
             CONF_EVENT_NOTE: call.data.get(CONF_EVENT_NOTE, ""),
@@ -148,6 +151,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
         await hass.services.async_call("select", "select_option", {"entity_id": f"select.{slug}_event_type", "option": EVENT_TYPES[0]})
         await hass.services.async_call("select", "select_option", {"entity_id": f"select.{slug}_event_unit", "option": EVENT_UNITS[0]})
         await hass.services.async_call("number", "set_value", {"entity_id": f"number.{slug}_event_dose", "value": 0})
+        await hass.services.async_call("text", "set_value", {"entity_id": f"text.{slug}_event_initials", "value": ""})
         await hass.services.async_call("text", "set_value", {"entity_id": f"text.{slug}_event_note", "value": ""})
 
     async def handle_delete_event(call: ServiceCall) -> None:

@@ -15,12 +15,35 @@ async def async_setup_platform(
     async_add_entities: AddEntitiesCallback,
     discovery_info: DiscoveryInfoType | None = None,
 ) -> None:
-    """Set up CGM Monitor event note text entity."""
+    """Set up CGM Monitor event text entities."""
     if discovery_info is None:
         return
 
     sensor_name = discovery_info[CONF_NAME]
-    async_add_entities([CgmEventNoteText(sensor_name)])
+    async_add_entities([CgmEventInitialsText(sensor_name), CgmEventNoteText(sensor_name)])
+
+
+class CgmEventInitialsText(RestoreEntity, TextEntity):
+    """Text entity for entering initials (max 3 chars) on the event form."""
+
+    _attr_mode = TextMode.TEXT
+    _attr_native_min = 0
+    _attr_native_max = 3
+    _attr_should_poll = False
+
+    def __init__(self, sensor_name: str) -> None:
+        self._attr_name = f"{sensor_name} Event Initials"
+        self._attr_unique_id = f"{slugify(sensor_name)}_event_initials"
+        self._attr_native_value = ""
+
+    async def async_added_to_hass(self) -> None:
+        await super().async_added_to_hass()
+        if (last := await self.async_get_last_state()) is not None:
+            self._attr_native_value = last.state or ""
+
+    async def async_set_value(self, value: str) -> None:
+        self._attr_native_value = value
+        self.async_write_ha_state()
 
 
 class CgmEventNoteText(RestoreEntity, TextEntity):
