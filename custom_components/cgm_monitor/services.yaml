@@ -34,19 +34,22 @@ add_event:
       selector:
         select:
           options:
-            - Insulin
             - Meal
-            - Exercise
+            - Snack
+            - Insulin
+            - Weighing
             - Custom
     unit:
       name: Unit
-      description: Unit for the dose (IU = insulin units, BE = bread units).
+      description: Unit for the dose (IU = insulin units, g Carbs = grams of carbohydrates, kg = kilograms, — = no unit).
       required: false
       selector:
         select:
           options:
             - IU
-            - BE
+            - g Carbs
+            - kg
+            - "—"
     dose:
       name: Dose
       description: Amount in the chosen unit.

@@ -69,8 +69,8 @@ TIME_LOADED_KEY = f"{DOMAIN}_time_loaded"
 STORES_KEY = "stores"
 CALENDARS_KEY = "calendars"
 
-EVENT_TYPES: list[str] = ["Meal", "Insulin", "Custom"]
-EVENT_UNITS: list[str] = ["IU", "BE"]
+EVENT_TYPES: list[str] = ["Meal", "Snack", "Insulin", "Weighing", "Custom"]
+EVENT_UNITS: list[str] = ["IU", "g Carbs", "kg", "—"]
 
 CONF_EVENT_SUBJECT = "subject"
 CONF_EVENT_DATE = "date"
