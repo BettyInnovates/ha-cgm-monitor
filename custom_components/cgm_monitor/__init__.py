@@ -44,6 +44,13 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
+
+def _format_trend(raw: str) -> str:
+    try:
+        return str(round(float(raw), 2))
+    except ValueError:
+        return raw.replace("_", " ").title()
+
 _NEXTCLOUD_SCHEMA = vol.Schema({
     vol.Required(CONF_NEXTCLOUD_URL): cv.string,
     vol.Required(CONF_NEXTCLOUD_USER): cv.string,
@@ -189,7 +196,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
             else "Unknown"
         )
         trend_str = (
-            trend_state.state.replace("_", " ").title()
+            _format_trend(trend_state.state)
             if trend_state and trend_state.state not in (STATE_UNAVAILABLE, STATE_UNKNOWN)
             else "Unknown"
         )
