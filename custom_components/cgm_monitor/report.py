@@ -20,6 +20,7 @@ from .const import (
     CONF_REPORT_ZIP_PASSWORD,
     CONF_CRITICAL_LOW_THRESHOLD,
     CONF_EVENT_DOSE,
+    CONF_EVENT_INITIALS,
     CONF_EVENT_NOTE,
     CONF_EVENT_START,
     CONF_EVENT_TYPE,
@@ -182,6 +183,7 @@ async def async_export_report(hass: HomeAssistant, report_date: py_date) -> list
             {
                 "timestamp": e.get(CONF_EVENT_START, ""),
                 "type": e.get(CONF_EVENT_TYPE, ""),
+                "initials": e.get(CONF_EVENT_INITIALS, ""),
                 "unit": e.get(CONF_EVENT_UNIT, ""),
                 "dose": e.get(CONF_EVENT_DOSE, ""),
                 "note": e.get(CONF_EVENT_NOTE, ""),
@@ -190,7 +192,7 @@ async def async_export_report(hass: HomeAssistant, report_date: py_date) -> list
         ]
         await hass.async_add_executor_job(
             _write_csv, events_file, event_rows,
-            ["timestamp", "type", "unit", "dose", "note"],
+            ["timestamp", "type", "initials", "unit", "dose", "note"],
         )
         written.append(events_file)
 

@@ -15,6 +15,7 @@ from .const import (
     CALENDARS_KEY,
     CONF_EVENT_DOSE,
     CONF_EVENT_END,
+    CONF_EVENT_INITIALS,
     CONF_EVENT_NOTE,
     CONF_EVENT_START,
     CONF_EVENT_TYPE,
@@ -155,6 +156,7 @@ class CgmCalendarEntity(CalendarEntity):
             CONF_EVENT_START: start.isoformat(),
             CONF_EVENT_END: end.isoformat(),
             CONF_EVENT_TYPE: event_type,
+            CONF_EVENT_INITIALS: "",
             CONF_EVENT_UNIT: "",
             CONF_EVENT_DOSE: None,
             CONF_EVENT_NOTE: kwargs.get("description", ""),
@@ -174,6 +176,8 @@ class CgmCalendarEntity(CalendarEntity):
 
     def _to_calendar_event(self, e: dict) -> CalendarEvent:
         parts = []
+        if e.get(CONF_EVENT_INITIALS):
+            parts.append(e[CONF_EVENT_INITIALS])
         if e.get(CONF_EVENT_DOSE) is not None:
             parts.append(f"{e[CONF_EVENT_DOSE]} {e.get(CONF_EVENT_UNIT, '')}".strip())
         if e.get(CONF_EVENT_NOTE):

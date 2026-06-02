@@ -27,7 +27,7 @@ class CgmEventInitialsText(RestoreEntity, TextEntity):
     """Text entity for entering initials (max 3 chars) on the event form."""
 
     _attr_mode = TextMode.TEXT
-    _attr_native_min = 1
+    _attr_native_min = 0
     _attr_native_max = 4
     _attr_should_poll = False
 
