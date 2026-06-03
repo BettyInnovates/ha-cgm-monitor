@@ -71,7 +71,7 @@ class CgmEventDoseNumber(RestoreEntity, NumberEntity):
     """Number entity for entering an event dose on the subject detail form."""
 
     _attr_mode = NumberMode.BOX
-    _attr_native_step = 0.5
+    _attr_native_step = 0.1
     _attr_native_min_value = 0.0
     _attr_native_max_value = 100.0
     _attr_should_poll = False
