@@ -74,7 +74,7 @@ _ADD_EVENT_SCHEMA = vol.Schema(
         vol.Required(CONF_EVENT_TYPE): vol.In(EVENT_TYPES),
         vol.Optional(CONF_EVENT_UNIT): vol.In(EVENT_UNITS),
         vol.Optional(CONF_EVENT_DOSE): vol.Coerce(float),
-        vol.Required(CONF_EVENT_INITIALS): vol.All(cv.string, vol.Length(min=1, max=4)),
+        vol.Optional(CONF_EVENT_INITIALS, default=""): vol.All(cv.string, vol.Length(max=4)),
         vol.Optional(CONF_EVENT_NOTE, default=""): cv.string,
     }
 )
