@@ -35,6 +35,11 @@ from .const import (
     DEFAULT_VERY_HIGH_THRESHOLD,
     DEFAULT_VERY_LOW_THRESHOLD,
     DOMAIN,
+    REPORT_FILE_EVENTS,
+    REPORT_FILE_FULL,
+    REPORT_FILE_GLUCOSE,
+    REPORT_FILE_REPORT,
+    REPORT_FILE_TYPES,
     STORES_KEY,
     UNIT_MG_DL,
 )
@@ -559,61 +564,140 @@ async def async_send_report(
 # ── Nextcloud upload ───────────────────────────────────────────────────────────
 
 
-def _create_encrypted_zip(csv_file: Path, zip_password: bytes) -> bytes:
+def _create_encrypted_zip(files: list[Path], zip_password: bytes) -> bytes:
     import pyzipper
     buf = io.BytesIO()
     with pyzipper.AESZipFile(buf, "w", compression=pyzipper.ZIP_DEFLATED, encryption=pyzipper.WZ_AES) as zf:
         zf.setpassword(zip_password)
-        zf.write(csv_file, csv_file.name)
+        for f in files:
+            zf.write(f, f.name)
     return buf.getvalue()
 
 
-async def async_upload_report(hass: HomeAssistant, report_date: py_date, nc_config: dict) -> list[str]:
-    """Create AES-256 encrypted ZIP per subject and upload via WebDAV to Nextcloud."""
+def _has_glucose_data(csv_file: Path) -> bool:
+    """True if the glucose CSV holds at least one real (numeric) glucose value."""
+    glucose_data, _ = _load_glucose_csv(csv_file)
+    return bool(glucose_data)
+
+
+def _collect_upload_files(
+    out: Path,
+    date_str: str,
+    subject_names: list[str],
+    file_types: list[str],
+) -> list[Path]:
+    """Gather the files to bundle into one ZIP for the given subjects and file types.
+
+    Per-subject CSVs (glucose/events/full) are added for every subject; the HTML
+    report is combined across all subjects and therefore added only once.
+    """
+    files: list[Path] = []
+
+    for subject_name in subject_names:
+        prefix = _file_prefix(subject_name)
+        glucose_file = out / f"{prefix}_{date_str}.csv"
+
+        # Only log when a subject has NO real glucose data at all (few values is normal).
+        if REPORT_FILE_GLUCOSE in file_types and glucose_file.exists() and not _has_glucose_data(glucose_file):
+            _LOGGER.info(
+                "CGM Monitor upload_report: subject '%s' has no glucose values on %s",
+                subject_name, date_str,
+            )
+
+        per_subject = {
+            REPORT_FILE_GLUCOSE: glucose_file,
+            REPORT_FILE_EVENTS: out / f"{prefix}_{date_str}_events.csv",
+            REPORT_FILE_FULL: out / f"{prefix}_{date_str}_full.csv",
+        }
+        for ftype, path in per_subject.items():
+            if ftype in file_types and path.exists():
+                files.append(path)
+
+    if REPORT_FILE_REPORT in file_types:
+        report_file = out / f"CGM_Report_{date_str}.html"
+        if report_file.exists():
+            files.append(report_file)
+
+    return files
+
+
+async def async_upload_report(
+    hass: HomeAssistant,
+    report_date: py_date,
+    nc_config: dict,
+    subjects: list[str] | None = None,
+    files: list[str] | None = None,
+    folder: str | None = None,
+) -> list[str]:
+    """Bundle the selected report files into ONE AES-256 ZIP and upload it via WebDAV.
+
+    One service call produces exactly one ZIP. `subjects` selects which subjects are
+    included (default: all configured ones), `files` selects which artefacts go in
+    (default: glucose only), and `folder` is an optional sub-folder created on demand.
+    """
     out = _out_dir(hass, report_date)
     date_str = report_date.isoformat()
     stores: dict = hass.data.get(DOMAIN, {}).get(STORES_KEY, {})
 
+    file_types = files or [REPORT_FILE_GLUCOSE]
+
+    if subjects:
+        subject_names = []
+        for name in subjects:
+            if name in stores:
+                subject_names.append(name)
+            else:
+                _LOGGER.warning("CGM Monitor upload_report: unknown subject '%s' — skipped", name)
+    else:
+        subject_names = list(stores.keys())
+
+    upload_files = _collect_upload_files(out, date_str, subject_names, file_types)
+    if not upload_files:
+        _LOGGER.warning(
+            "CGM Monitor upload_report: nothing to upload for %s (files=%s, subjects=%s) — "
+            "run export_report/generate_report first",
+            date_str, file_types, subject_names or "all",
+        )
+        return []
+
     nc_url = nc_config[CONF_NEXTCLOUD_URL].rstrip("/")
     nc_user = nc_config[CONF_NEXTCLOUD_USER]
     nc_pass = nc_config[CONF_NEXTCLOUD_PASSWORD]
-    nc_path = nc_config.get(CONF_NEXTCLOUD_PATH, "CGM_Reports").strip("/")
+    nc_path = nc_config.get(CONF_NEXTCLOUD_PATH, "CGM_Reports")
     zip_password = nc_config[CONF_REPORT_ZIP_PASSWORD].encode()
 
     auth = aiohttp.BasicAuth(nc_user, nc_pass)
     session = aiohttp_client.async_get_clientsession(hass)
-    uploaded: list[str] = []
 
-    folder_url = f"{nc_url}/remote.php/webdav/{nc_path}"
-    try:
-        await session.request("MKCOL", folder_url, auth=auth)
-    except Exception:
-        pass
+    # Build the target folder, creating each path segment if it does not exist yet.
+    webdav_root = f"{nc_url}/remote.php/webdav"
+    segments = [s for s in nc_path.split("/") if s]
+    if folder:
+        segments += [s for s in folder.split("/") if s]
+    folder_url = webdav_root
+    for seg in segments:
+        folder_url = f"{folder_url}/{seg}"
+        try:
+            await session.request("MKCOL", folder_url, auth=auth)
+        except Exception:
+            pass
 
-    for subject_name in stores:
-        prefix = _file_prefix(subject_name)
-        csv_file = out / f"{prefix}_{date_str}.csv"
+    zip_data = await hass.async_add_executor_job(_create_encrypted_zip, upload_files, zip_password)
+    tag = "-".join(t for t in REPORT_FILE_TYPES if t in file_types)
+    zip_filename = f"CGM_{date_str}_{tag}.zip"
+    upload_url = f"{folder_url}/{zip_filename}"
 
-        if not csv_file.exists():
-            _LOGGER.warning(
-                "CGM Monitor upload_report: no CSV for '%s' on %s — run export_report first",
-                subject_name, date_str,
-            )
-            continue
+    resp = await session.put(upload_url, data=zip_data, auth=auth)
+    if resp.status in (200, 201, 204):
+        _LOGGER.info(
+            "CGM Monitor upload_report: uploaded %s (%d file(s)) to %s",
+            zip_filename, len(upload_files), folder_url,
+        )
+        return [zip_filename]
 
-        zip_data = await hass.async_add_executor_job(_create_encrypted_zip, csv_file, zip_password)
-        zip_filename = f"{prefix}_{date_str}_glucose.zip"
-        upload_url = f"{folder_url}/{zip_filename}"
-
-        resp = await session.put(upload_url, data=zip_data, auth=auth)
-        if resp.status in (200, 201, 204):
-            uploaded.append(zip_filename)
-            _LOGGER.info("CGM Monitor upload_report: uploaded %s", zip_filename)
-        else:
-            body = await resp.text()
-            _LOGGER.error(
-                "CGM Monitor upload_report: failed to upload %s — HTTP %s: %s",
-                zip_filename, resp.status, body[:200],
-            )
-
-    return uploaded
+    body = await resp.text()
+    _LOGGER.error(
+        "CGM Monitor upload_report: failed to upload %s — HTTP %s: %s",
+        zip_filename, resp.status, body[:200],
+    )
+    return []

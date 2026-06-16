@@ -151,10 +151,44 @@ send_report:
 upload_report:
   name: Upload CGM Report to Nextcloud
   description: >
-    Create an AES-256 encrypted ZIP file of the glucose CSV for each subject
-    and upload it via WebDAV to Nextcloud. Requires a 'nextcloud' block in
-    configuration.yaml. Run export_report first.
+    Bundle the selected report files into ONE AES-256 encrypted ZIP and upload it
+    via WebDAV to Nextcloud. One service call produces exactly one ZIP. Requires a
+    'nextcloud' block in configuration.yaml. Run export_report (and generate_report
+    for 'full'/'report') first.
   fields:
+    subjects:
+      name: Subjects
+      description: >
+        Which subjects to include. Leave empty for all configured subjects.
+      required: false
+      example: "CGM Subject 1"
+      selector:
+        text:
+          multiple: true
+    files:
+      name: Files
+      description: >
+        Which artefacts to bundle into the ZIP. glucose = glucose CSV,
+        events = events CSV, full = glucose+events merged CSV, report = HTML report.
+        Defaults to glucose only.
+      required: false
+      selector:
+        select:
+          multiple: true
+          options:
+            - glucose
+            - events
+            - full
+            - report
+    folder:
+      name: Subfolder
+      description: >
+        Sub-folder under the configured Nextcloud base path (e.g. "Auftraggeber"
+        or "Intern"). Created automatically if missing. Leave empty for the base path.
+      required: false
+      example: Auftraggeber
+      selector:
+        text:
     date:
       name: Date
       description: Date to upload in YYYY-MM-DD format. Defaults to yesterday.

@@ -31,8 +31,12 @@ from .const import (
     CONF_NEXTCLOUD_PATH,
     CONF_NEXTCLOUD_URL,
     CONF_NEXTCLOUD_USER,
+    CONF_REPORT_FILES,
+    CONF_REPORT_FOLDER,
+    CONF_REPORT_SUBJECTS,
     CONF_REPORT_ZIP_PASSWORD,
     DOMAIN,
+    REPORT_FILE_TYPES,
     EVENT_TYPES,
     EVENT_UNITS,
     NOTIFY_TITLE_CRITICAL,
@@ -103,6 +107,15 @@ _SEND_REPORT_SCHEMA = vol.Schema(
     {
         vol.Required("notify_service"): cv.string,
         vol.Required("recipients"): cv.string,
+        **_REPORT_DATE_SCHEMA,
+    }
+)
+
+_UPLOAD_REPORT_SCHEMA = vol.Schema(
+    {
+        vol.Optional(CONF_REPORT_SUBJECTS): vol.All(cv.ensure_list, [cv.string]),
+        vol.Optional(CONF_REPORT_FILES): vol.All(cv.ensure_list, [vol.In(REPORT_FILE_TYPES)]),
+        vol.Optional(CONF_REPORT_FOLDER): cv.string,
         **_REPORT_DATE_SCHEMA,
     }
 )
@@ -251,7 +264,14 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
                 DOMAIN,
             )
             return
-        await async_upload_report(hass, _parse_report_date(call), nc_config)
+        await async_upload_report(
+            hass,
+            _parse_report_date(call),
+            nc_config,
+            subjects=call.data.get(CONF_REPORT_SUBJECTS),
+            files=call.data.get(CONF_REPORT_FILES),
+            folder=call.data.get(CONF_REPORT_FOLDER),
+        )
 
     hass.services.async_register(DOMAIN, "add_event", handle_add_event, schema=_ADD_EVENT_SCHEMA)
     hass.services.async_register(DOMAIN, "delete_event", handle_delete_event, schema=_DELETE_EVENT_SCHEMA)
@@ -259,6 +279,6 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     hass.services.async_register(DOMAIN, "export_report", handle_export_report, schema=_EXPORT_REPORT_SCHEMA)
     hass.services.async_register(DOMAIN, "generate_report", handle_generate_report, schema=_GENERATE_REPORT_SCHEMA)
     hass.services.async_register(DOMAIN, "send_report", handle_send_report, schema=_SEND_REPORT_SCHEMA)
-    hass.services.async_register(DOMAIN, "upload_report", handle_upload_report, schema=_EXPORT_REPORT_SCHEMA)
+    hass.services.async_register(DOMAIN, "upload_report", handle_upload_report, schema=_UPLOAD_REPORT_SCHEMA)
 
     return True

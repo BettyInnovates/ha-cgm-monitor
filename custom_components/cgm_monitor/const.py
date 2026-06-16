@@ -93,6 +93,25 @@ CONF_NEXTCLOUD_PASSWORD = "password"
 CONF_NEXTCLOUD_PATH = "path"
 CONF_REPORT_ZIP_PASSWORD = "zip_password"
 
+# ── upload_report service parameters ──────────────────────────────────────────
+
+CONF_REPORT_SUBJECTS = "subjects"
+CONF_REPORT_FILES = "files"
+CONF_REPORT_FOLDER = "folder"
+
+REPORT_FILE_GLUCOSE = "glucose"
+REPORT_FILE_EVENTS = "events"
+REPORT_FILE_FULL = "full"      # glucose + events merged
+REPORT_FILE_REPORT = "report"  # combined HTML report
+
+# Canonical order — also defines how the ZIP name tag is assembled.
+REPORT_FILE_TYPES: list[str] = [
+    REPORT_FILE_GLUCOSE,
+    REPORT_FILE_EVENTS,
+    REPORT_FILE_FULL,
+    REPORT_FILE_REPORT,
+]
+
 # ── Notification configuration ────────────────────────────────────────────────
 
 NOTIFY_TITLE_WARNING = "CGM Warning"
