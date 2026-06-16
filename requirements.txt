@@ -69,3 +69,4 @@ securetar~=2024.11.0
 aiohasupervisor~=0.2.2b5
 habluetooth~=5.10.2
 aiooui~=0.1.9
+pyzipper~=0.3.6
