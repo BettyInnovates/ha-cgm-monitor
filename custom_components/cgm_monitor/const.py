@@ -46,6 +46,46 @@ CGM_STATES: Final[list[str]] = [
     STATE_VERY_HIGH,
 ]
 
+# ── Trend categories & numeric→category normalisation ─────────────────────────
+# Some sources (Dexcom Share) deliver the trend already as a category string;
+# others (ESP/BLE) deliver it as a numeric rate in mg/dL per minute. We normalise
+# everything to a category so alarms, arrows and the priority mapping are
+# source-independent. Bands follow Dexcom's arrow thresholds (±1/±2/±3 mg/dL/min);
+# see data_analysis/trend_decoding/TREND_STRING_MAPPING.md for the derivation.
+
+TREND_RISING_QUICKLY = "rising_quickly"
+
+# (exclusive upper bound in mg/dL/min, category), ascending.
+TREND_BANDS: Final[list[tuple[float, str]]] = [
+    (-3.0, "falling_quickly"),
+    (-2.0, "falling"),
+    (-1.0, "falling_slightly"),
+    (1.0, "steady"),
+    (2.0, "rising_slightly"),
+    (3.0, "rising"),
+]
+
+
+def classify_trend(value: str | float | None) -> str | None:
+    """Normalise a trend reading to a category string.
+
+    Category strings (Dexcom Share, also ``unavailable``/``unknown``) pass
+    through unchanged. Numeric rates (mg/dL per minute, e.g. from an ESP) are
+    mapped to Dexcom's arrow bands: |rate| < 1 steady, 1–2 slightly, 2–3 single,
+    ≥ 3 quickly.
+    """
+    if value is None:
+        return None
+    try:
+        rate = float(value)
+    except (TypeError, ValueError):
+        return value
+    for upper, category in TREND_BANDS:
+        if rate < upper:
+            return category
+    return TREND_RISING_QUICKLY
+
+
 # ── Priority values ───────────────────────────────────────────────────────────
 
 PRIORITY_CRITICAL = "critical"

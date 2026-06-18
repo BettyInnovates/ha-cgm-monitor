@@ -22,3 +22,6 @@ docs/
 
 # Template files (local working copies, not for git)
 templates/
+
+# Data analysis scratch (scripts + raw subject data — never commit)
+data_analysis/

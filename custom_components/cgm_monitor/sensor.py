@@ -28,6 +28,7 @@ from homeassistant.util import slugify
 
 from .const import (
     CGM_STATES,
+    classify_trend,
     CONF_CRITICAL_LOW_THRESHOLD,
     CONF_GLUCOSE_SENSOR,
     CONF_HASS_CONFIG,
@@ -285,7 +286,9 @@ class CgmCoordinator:
                 return
             self._glucose = float(value)
         elif reading == READING_TREND:
-            self._trend = value
+            # Normalise to a category: numeric rates (ESP, mg/dL/min) → arrow
+            # band; category strings (Dexcom Share) pass through unchanged.
+            self._trend = classify_trend(value)
 
         self._recalculate()
 
@@ -430,10 +433,5 @@ class CgmTrendSensor(_CgmEntity):
 
     @property
     def native_value(self) -> str | None:
-        raw = self._coordinator.trend
-        if raw is None:
-            return None
-        try:
-            return str(round(float(raw), 2))
-        except ValueError:
-            return raw
+        # Already normalised to a category by the coordinator (classify_trend).
+        return self._coordinator.trend
