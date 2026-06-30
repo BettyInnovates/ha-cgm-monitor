@@ -8,11 +8,13 @@ DOMAIN: Final = "cgm_monitor"
 
 READING_GLUCOSE = "glucose"
 READING_TREND = "trend"
+READING_SENSOR_STATE = "sensor_state"
 
 # ── Configuration keys ────────────────────────────────────────────────────────
 
 CONF_GLUCOSE_SENSOR = "glucose_sensor"
 CONF_TREND_SENSOR = "trend_sensor"
+CONF_STATE_SENSOR = "state_sensor"  # optional: ESP CalibrationState byte; absent for Dexcom Share
 CONF_CRITICAL_LOW_THRESHOLD = "critical_low_threshold"
 CONF_VERY_LOW_THRESHOLD = "very_low_threshold"
 CONF_LOW_THRESHOLD = "low_threshold"
@@ -45,6 +47,87 @@ CGM_STATES: Final[list[str]] = [
     STATE_HIGH,
     STATE_VERY_HIGH,
 ]
+
+# ── Sensor validity (ESP CalibrationState byte) ───────────────────────────────
+# The ESP exposes the Dexcom CalibrationState as a decimal byte. Only state 6
+# delivers usable glucose; state 2 is the warmup phase (no valid values, but
+# expected and harmless). 4095 is the 12-bit "no value" sentinel and occurs both
+# at warmup start and in error/stop states — never a real reading.
+# See data_analysis/sensor_validity/SENSOR_STATE_CODES.md for the full enum.
+
+SENSOR_STATE_VALID: Final = 6
+SENSOR_STATE_WARMUP: Final = 2
+GLUCOSE_SENTINEL: Final = 4095
+
+# Derived categories so alarms/views can branch on a meaning instead of a raw
+# byte. The raw code is always kept as the entity value; the category is only
+# computed on top. Codes not listed here are treated as a general failure
+# ("sensor dead / unknown") — fail safe. Extend the map as new codes are
+# confirmed (see data_analysis/sensor_validity/SENSOR_STATE_CODES.md).
+
+SENSOR_STATE_CAT_VALID = "valid"                # 6  — usable glucose
+SENSOR_STATE_CAT_WARMUP = "warmup"              # 2  — warming up, values not yet trustworthy
+SENSOR_STATE_CAT_TEMPORARY_ERROR = "temporary_error"  # 18 — temporary session failure
+SENSOR_STATE_CAT_EXPIRED = "expired"            # 15 / 24 — session expired (sensor time ran out)
+SENSOR_STATE_CAT_ERROR = "error"                # any other / unknown — general failure, sensor dead
+SENSOR_STATE_CAT_NONE = "none"                  # no state source (Dexcom Share)
+
+# 15 = "Session Expired" per xDrip docs; 24 observed by us after the sensor's
+# runtime elapsed. Both treated as expired — keep an eye on which actually shows.
+SENSOR_STATE_CATEGORIES: Final[dict[int, str]] = {
+    SENSOR_STATE_WARMUP: SENSOR_STATE_CAT_WARMUP,
+    SENSOR_STATE_VALID: SENSOR_STATE_CAT_VALID,
+    15: SENSOR_STATE_CAT_EXPIRED,
+    18: SENSOR_STATE_CAT_TEMPORARY_ERROR,
+    24: SENSOR_STATE_CAT_EXPIRED,
+}
+
+SENSOR_STATE_CATEGORY_VALUES: Final[list[str]] = [
+    SENSOR_STATE_CAT_VALID,
+    SENSOR_STATE_CAT_WARMUP,
+    SENSOR_STATE_CAT_TEMPORARY_ERROR,
+    SENSOR_STATE_CAT_EXPIRED,
+    SENSOR_STATE_CAT_ERROR,
+    SENSOR_STATE_CAT_NONE,
+]
+
+
+def classify_sensor_state(sensor_state: str | int | None) -> str:
+    """Map a raw CalibrationState byte to a category.
+
+    None/empty (Dexcom Share, no source) → 'none'. Known codes map per
+    SENSOR_STATE_CATEGORIES; everything else → 'error' (fail safe).
+    """
+    if sensor_state is None or sensor_state == "":
+        return SENSOR_STATE_CAT_NONE
+    try:
+        code = int(float(sensor_state))
+    except (ValueError, TypeError):
+        return SENSOR_STATE_CAT_ERROR
+    return SENSOR_STATE_CATEGORIES.get(code, SENSOR_STATE_CAT_ERROR)
+
+
+def is_valid_reading(sensor_state: str | int | None, glucose: float | None) -> bool:
+    """True if a reading is trustworthy.
+
+    Source-independent: ESP delivers a sensor_state (only 6 is valid); Dexcom
+    Share delivers none (sensor_state is None) → trusted by default. The 4095
+    sentinel is never valid, regardless of source/state.
+    """
+    if glucose is None:
+        return False
+    try:
+        if int(round(float(glucose))) == GLUCOSE_SENTINEL:
+            return False
+    except (ValueError, TypeError):
+        return False
+    if sensor_state is None or sensor_state == "":
+        return True  # no state info (Dexcom Share) → trust the value
+    try:
+        return int(float(sensor_state)) == SENSOR_STATE_VALID
+    except (ValueError, TypeError):
+        return False
+
 
 # ── Trend categories & numeric→category normalisation ─────────────────────────
 # Some sources (Dexcom Share) deliver the trend already as a category string;

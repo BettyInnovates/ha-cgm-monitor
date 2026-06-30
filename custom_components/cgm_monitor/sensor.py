@@ -28,6 +28,7 @@ from homeassistant.util import slugify
 
 from .const import (
     CGM_STATES,
+    classify_sensor_state,
     classify_trend,
     CONF_CRITICAL_LOW_THRESHOLD,
     CONF_GLUCOSE_SENSOR,
@@ -35,6 +36,7 @@ from .const import (
     CONF_HIGH_THRESHOLD,
     CONF_LOW_THRESHOLD,
     CONF_PRIORITY_MAPPING_OVERRIDES,
+    CONF_STATE_SENSOR,
     CONF_TREND_SENSOR,
     CONF_VERY_HIGH_THRESHOLD,
     CONF_VERY_LOW_THRESHOLD,
@@ -50,6 +52,7 @@ from .const import (
     PRIORITY_STATES,
     PRIORITY_WARNING,
     READING_GLUCOSE,
+    READING_SENSOR_STATE,
     READING_TREND,
     STATE_CRITICAL_LOW,
     STATE_HIGH,
@@ -80,6 +83,7 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
         vol.Required(CONF_NAME): cv.string,
         vol.Required(CONF_GLUCOSE_SENSOR): cv.entity_id,
         vol.Required(CONF_TREND_SENSOR): cv.entity_id,
+        vol.Optional(CONF_STATE_SENSOR): cv.entity_id,
         vol.Optional(CONF_CRITICAL_LOW_THRESHOLD, default=DEFAULT_CRITICAL_LOW_THRESHOLD): vol.Coerce(float),
         vol.Optional(CONF_VERY_LOW_THRESHOLD, default=DEFAULT_VERY_LOW_THRESHOLD): vol.Coerce(float),
         vol.Optional(CONF_LOW_THRESHOLD, default=DEFAULT_LOW_THRESHOLD): vol.Coerce(float),
@@ -117,6 +121,7 @@ async def async_setup_platform(
         CgmStateSensor(coordinator),
         CgmPrioritySensor(coordinator),
         CgmTrendSensor(coordinator),
+        CgmSensorStateSensor(coordinator),
     ]
 
     for entity in entities:
@@ -189,6 +194,9 @@ class CgmCoordinator:
             config[CONF_GLUCOSE_SENSOR]: READING_GLUCOSE,
             config[CONF_TREND_SENSOR]: READING_TREND,
         }
+        # Optional ESP CalibrationState source; absent for Dexcom Share.
+        if config.get(CONF_STATE_SENSOR):
+            self._sensormap[config[CONF_STATE_SENSOR]] = READING_SENSOR_STATE
 
         self._threshold_entity_ids: set[str] = {
             f"number.{self._name_slug}_{conf_key}"
@@ -198,6 +206,7 @@ class CgmCoordinator:
         self._glucose: float | None = None
         self._cgm_state: str | None = None
         self._trend: str | None = None
+        self._sensor_state: str | None = None
         self._priority: str = PRIORITY_NORMAL
 
         self._priority_map = self._build_priority_map(
@@ -224,6 +233,11 @@ class CgmCoordinator:
     @property
     def trend(self) -> str | None:
         return self._trend
+
+    @property
+    def sensor_state(self) -> str | None:
+        """Raw ESP CalibrationState byte; None when no state source (Dexcom Share)."""
+        return self._sensor_state
 
     @property
     def priority(self) -> str:
@@ -275,6 +289,14 @@ class CgmCoordinator:
                 self._cgm_state = None
                 self._priority = PRIORITY_CRITICAL
                 self._notify_entities()
+            elif reading == READING_SENSOR_STATE:
+                self._sensor_state = None
+                self._notify_entities()
+            return
+
+        if reading == READING_SENSOR_STATE:
+            self._sensor_state = None if value == STATE_UNAVAILABLE else value
+            self._notify_entities()
             return
 
         if reading == READING_GLUCOSE:
@@ -435,3 +457,21 @@ class CgmTrendSensor(_CgmEntity):
     def native_value(self) -> str | None:
         # Already normalised to a category by the coordinator (classify_trend).
         return self._coordinator.trend
+
+
+class CgmSensorStateSensor(_CgmEntity):
+    """Mirrors the raw ESP CalibrationState byte; None for sources without it (Dexcom Share)."""
+
+    def __init__(self, coordinator: CgmCoordinator) -> None:
+        super().__init__(coordinator)
+        self._attr_name = f"{coordinator.name} Sensor State"
+        self._attr_unique_id = f"{slugify(coordinator.name)}_sensor_state"
+
+    @property
+    def native_value(self) -> str | None:
+        return self._coordinator.sensor_state
+
+    @property
+    def extra_state_attributes(self) -> dict[str, str]:
+        # Raw code stays the value; the derived category is exposed for alarms/views.
+        return {"category": classify_sensor_state(self._coordinator.sensor_state)}
