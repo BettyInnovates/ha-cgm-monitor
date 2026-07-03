@@ -70,7 +70,16 @@ SENSOR_STATE_CAT_WARMUP = "warmup"              # 2  — warming up, values not 
 SENSOR_STATE_CAT_TEMPORARY_ERROR = "temporary_error"  # 18 — temporary session failure
 SENSOR_STATE_CAT_EXPIRED = "expired"            # 15 / 24 — session expired (sensor time ran out)
 SENSOR_STATE_CAT_ERROR = "error"                # any other / unknown — general failure, sensor dead
-SENSOR_STATE_CAT_NONE = "none"                  # no state source (Dexcom Share)
+SENSOR_STATE_CAT_DISCONNECTED = "disconnected"  # state source configured but no value — out of range / no internet / defective
+SENSOR_STATE_CAT_NONE = "none"                  # no state source at all (Dexcom Share)
+
+# Seconds any "no valid glucose" condition may stay a warning before it escalates
+# to critical. Covers data gaps (Dexcom delivers empty / ESP brief loss),
+# temporary_error (18) and disconnected (out of range) — all self-heal often, so
+# a short dropout must not blast a critical immediately. 15 min aligns with
+# Dexcom's own signal-loss handling. Exceptions: warmup (2) = no alarm,
+# expired (15/24) = warning only, dead sensor 'error' (25/26/…) = immediate critical.
+NO_VALUE_ESCALATION_SECONDS: Final = 15 * 60
 
 # 15 = "Session Expired" per xDrip docs; 24 observed by us after the sensor's
 # runtime elapsed. Both treated as expired — keep an eye on which actually shows.
@@ -88,6 +97,7 @@ SENSOR_STATE_CATEGORY_VALUES: Final[list[str]] = [
     SENSOR_STATE_CAT_TEMPORARY_ERROR,
     SENSOR_STATE_CAT_EXPIRED,
     SENSOR_STATE_CAT_ERROR,
+    SENSOR_STATE_CAT_DISCONNECTED,
     SENSOR_STATE_CAT_NONE,
 ]
 

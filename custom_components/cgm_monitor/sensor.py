@@ -22,7 +22,7 @@ from homeassistant.const import (
 from homeassistant.core import Event, EventStateChangedData, HomeAssistant, State, callback
 from homeassistant.helpers import config_validation as cv, discovery
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.event import async_track_state_change_event
+from homeassistant.helpers.event import async_call_later, async_track_state_change_event
 from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
 from homeassistant.util import slugify
 
@@ -30,6 +30,14 @@ from .const import (
     CGM_STATES,
     classify_sensor_state,
     classify_trend,
+    GLUCOSE_SENTINEL,
+    SENSOR_STATE_CAT_DISCONNECTED,
+    SENSOR_STATE_CAT_ERROR,
+    SENSOR_STATE_CAT_EXPIRED,
+    SENSOR_STATE_CAT_NONE,
+    SENSOR_STATE_CAT_TEMPORARY_ERROR,
+    SENSOR_STATE_CAT_WARMUP,
+    NO_VALUE_ESCALATION_SECONDS,
     CONF_CRITICAL_LOW_THRESHOLD,
     CONF_GLUCOSE_SENSOR,
     CONF_HASS_CONFIG,
@@ -181,6 +189,16 @@ async def async_setup_platform(
 # ── Coordinator ────────────────────────────────────────────────────────────────
 
 
+# Situations the coordinator can be in regarding glucose trustworthiness.
+# Drives the priority when there is no usable glucose value; the (garbage/missing)
+# number must never raise low/high alarms in these cases.
+_SIT_VALID = "valid"            # usable glucose → normal threshold-based alarms
+_SIT_WARMUP = "warmup"          # planned → no alarm (info notification handles it)
+_SIT_EXPIRED = "expired"        # session ended → warning only (known/expected)
+_SIT_ERROR = "error"            # dead sensor → immediate critical
+_SIT_ESCALATING = "escalating"  # no value / temp error / out of range → warning, then critical after timeout
+
+
 class CgmCoordinator:
     """Holds all CGM data, subscribes to source sensors, and notifies entities on change."""
 
@@ -195,7 +213,8 @@ class CgmCoordinator:
             config[CONF_TREND_SENSOR]: READING_TREND,
         }
         # Optional ESP CalibrationState source; absent for Dexcom Share.
-        if config.get(CONF_STATE_SENSOR):
+        self._has_state_sensor: bool = bool(config.get(CONF_STATE_SENSOR))
+        if self._has_state_sensor:
             self._sensormap[config[CONF_STATE_SENSOR]] = READING_SENSOR_STATE
 
         self._threshold_entity_ids: set[str] = {
@@ -208,6 +227,10 @@ class CgmCoordinator:
         self._trend: str | None = None
         self._sensor_state: str | None = None
         self._priority: str = PRIORITY_NORMAL
+
+        # "no valid glucose" escalation: timer handle + whether it has fired.
+        self._escalation_unsub = None
+        self._escalated: bool = False
 
         self._priority_map = self._build_priority_map(
             mapping_data, config.get(CONF_PRIORITY_MAPPING_OVERRIDES, [])
@@ -238,6 +261,20 @@ class CgmCoordinator:
     def sensor_state(self) -> str | None:
         """Raw ESP CalibrationState byte; None when no state source (Dexcom Share)."""
         return self._sensor_state
+
+    @property
+    def sensor_state_category(self) -> str:
+        """Derived meaning of the sensor state.
+
+        No state source at all (Dexcom Share) → 'none'. State source configured
+        but currently no value (out of range / lost) → 'disconnected'. Otherwise
+        the raw code is classified (valid/warmup/temporary_error/expired/error).
+        """
+        if not self._has_state_sensor:
+            return SENSOR_STATE_CAT_NONE
+        if self._sensor_state is None:
+            return SENSOR_STATE_CAT_DISCONNECTED
+        return classify_sensor_state(self._sensor_state)
 
     @property
     def priority(self) -> str:
@@ -286,27 +323,26 @@ class CgmCoordinator:
         if value is None or value == STATE_UNKNOWN:
             if reading == READING_GLUCOSE:
                 self._glucose = None
-                self._cgm_state = None
-                self._priority = PRIORITY_CRITICAL
-                self._notify_entities()
+                self._recalculate()
             elif reading == READING_SENSOR_STATE:
                 self._sensor_state = None
-                self._notify_entities()
+                self._recalculate()
             return
 
         if reading == READING_SENSOR_STATE:
             self._sensor_state = None if value == STATE_UNAVAILABLE else value
-            self._notify_entities()
+            self._recalculate()
             return
 
         if reading == READING_GLUCOSE:
             if value == STATE_UNAVAILABLE:
                 self._glucose = None
-                self._cgm_state = None
-                self._priority = PRIORITY_CRITICAL
-                self._notify_entities()
+                self._recalculate()
                 return
-            self._glucose = float(value)
+            glucose = float(value)
+            # 4095 is the 12-bit "no value" sentinel; keep the series chart-safe
+            # by storing 0 (a value that never occurs naturally → clearly bogus).
+            self._glucose = 0.0 if glucose == GLUCOSE_SENTINEL else glucose
         elif reading == READING_TREND:
             # Normalise to a category: numeric rates (ESP, mg/dL/min) → arrow
             # band; category strings (Dexcom Share) pass through unchanged.
@@ -314,12 +350,46 @@ class CgmCoordinator:
 
         self._recalculate()
 
-    def _recalculate(self) -> None:
-        """Recompute cgm_state and priority from current readings."""
+    def _situation(self) -> str:
+        """Classify what we can trust right now (single source of truth for the gate)."""
+        category = self.sensor_state_category
+        if category == SENSOR_STATE_CAT_WARMUP:
+            return _SIT_WARMUP
+        if category == SENSOR_STATE_CAT_ERROR:
+            return _SIT_ERROR
+        if category == SENSOR_STATE_CAT_EXPIRED:
+            return _SIT_EXPIRED
+        if category in (SENSOR_STATE_CAT_TEMPORARY_ERROR, SENSOR_STATE_CAT_DISCONNECTED):
+            return _SIT_ESCALATING
+        # 'none' (Dexcom) or 'valid' (ESP state 6): trust the glucose unless it's a data gap.
         if self._glucose is None:
+            return _SIT_ESCALATING
+        return _SIT_VALID
+
+    def _recalculate(self) -> None:
+        """Recompute cgm_state and priority from current readings and sensor validity."""
+        # Validity gate: when there is no usable glucose, the situation drives the
+        # priority — the garbage/missing value must not raise low/high alarms.
+        sit = self._situation()
+        if sit != _SIT_VALID:
+            self._cgm_state = None
+            if sit == _SIT_WARMUP:
+                self._cancel_escalation()
+                self._priority = PRIORITY_NORMAL          # planned, no alarm
+            elif sit == _SIT_ERROR:
+                self._cancel_escalation()
+                self._priority = PRIORITY_CRITICAL        # dead sensor → immediate
+            elif sit == _SIT_EXPIRED:
+                self._cancel_escalation()
+                self._priority = PRIORITY_WARNING         # known/expected → confirm only
+            else:  # _SIT_ESCALATING: no value / temp error / out of range
+                self._arm_escalation()
+                self._priority = PRIORITY_CRITICAL if self._escalated else PRIORITY_WARNING
             self._notify_entities()
             return
 
+        # Usable glucose → normal threshold-based path.
+        self._cancel_escalation()
         critical_low = self._get_threshold(CONF_CRITICAL_LOW_THRESHOLD, DEFAULT_CRITICAL_LOW_THRESHOLD)
         very_low = self._get_threshold(CONF_VERY_LOW_THRESHOLD, DEFAULT_VERY_LOW_THRESHOLD)
         low = self._get_threshold(CONF_LOW_THRESHOLD, DEFAULT_LOW_THRESHOLD)
@@ -347,6 +417,31 @@ class CgmCoordinator:
 
         _LOGGER.debug("New data: glucose=%s state=%s priority=%s", self._glucose, self._cgm_state, self._priority)
         self._notify_entities()
+
+    def _arm_escalation(self) -> None:
+        """Start the timer that escalates a lingering 'no valid value' from warning to critical."""
+        if self._escalated or self._escalation_unsub is not None:
+            return  # already escalated or already counting down
+        self._escalation_unsub = async_call_later(
+            self._hass, NO_VALUE_ESCALATION_SECONDS, self._on_escalation_timeout
+        )
+
+    @callback
+    def _on_escalation_timeout(self, _now) -> None:
+        """Fired after NO_VALUE_ESCALATION_SECONDS — escalate if still without a valid value."""
+        self._escalation_unsub = None
+        if self._situation() == _SIT_ESCALATING:
+            self._escalated = True
+            self._priority = PRIORITY_CRITICAL
+            _LOGGER.info("CGM Monitor %s: no valid value persisted → critical", self._name)
+            self._notify_entities()
+
+    def _cancel_escalation(self) -> None:
+        """Stop the escalation timer and reset its state (value/sensor recovered or changed)."""
+        if self._escalation_unsub is not None:
+            self._escalation_unsub()
+            self._escalation_unsub = None
+        self._escalated = False
 
     def _notify_entities(self) -> None:
         """Push current state to all registered entities that are ready."""
@@ -474,4 +569,4 @@ class CgmSensorStateSensor(_CgmEntity):
     @property
     def extra_state_attributes(self) -> dict[str, str]:
         # Raw code stays the value; the derived category is exposed for alarms/views.
-        return {"category": classify_sensor_state(self._coordinator.sensor_state)}
+        return {"category": self._coordinator.sensor_state_category}
