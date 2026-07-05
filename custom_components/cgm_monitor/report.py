@@ -35,6 +35,8 @@ from .const import (
     DEFAULT_VERY_HIGH_THRESHOLD,
     DEFAULT_VERY_LOW_THRESHOLD,
     DOMAIN,
+    GLUCOSE_SENTINEL,
+    is_valid_reading,
     REPORT_FILE_EVENTS,
     REPORT_FILE_FULL,
     REPORT_FILE_GLUCOSE,
@@ -129,6 +131,40 @@ def _write_csv(path: Path, rows: list[dict], fieldnames: list[str]) -> None:
         writer.writerows(rows)
 
 
+def _chart_safe_glucose(value: str) -> str:
+    """Rewrite the 4095 "no value" sentinel to 0 (never occurs naturally → clearly
+    bogus, keeps charts intact). Everything else passes through unchanged."""
+    try:
+        if int(round(float(value))) == GLUCOSE_SENTINEL:
+            return "0"
+    except (ValueError, TypeError):
+        pass
+    return value
+
+
+def _split_raw_and_main(rows: list[dict]) -> tuple[list[dict], list[dict]]:
+    """Split assembled glucose rows into the two export variants.
+
+    RAW: every reading, glucose 4095→0, keeps the ``sensor_state`` column.
+    MAIN: only trustworthy readings (``is_valid_reading`` → ESP state 6, or any
+    numeric value when there is no state source / Dexcom), without ``sensor_state``.
+    Each input row is a dict with keys timestamp, glucose, trend, state, priority,
+    sensor_state and the threshold columns.
+    """
+    raw_rows: list[dict] = []
+    main_rows: list[dict] = []
+    for r in rows:
+        raw = dict(r)
+        raw["glucose"] = _chart_safe_glucose(r.get("glucose", ""))
+        raw_rows.append(raw)
+
+        if is_valid_reading(r.get("sensor_state"), r.get("glucose")):
+            main = dict(raw)
+            main.pop("sensor_state", None)  # redundant in MAIN (always valid)
+            main_rows.append(main)
+    return raw_rows, main_rows
+
+
 # ── Export ─────────────────────────────────────────────────────────────────────
 
 
@@ -153,6 +189,7 @@ async def async_export_report(hass: HomeAssistant, report_date: py_date) -> list
             f"sensor.{slug}_trend",
             f"sensor.{slug}_state",
             f"sensor.{slug}_priority",
+            f"sensor.{slug}_sensor_state",
         ]
         history = await _async_get_history(hass, entity_ids, start_dt, end_dt)
         thresholds = _get_thresholds(hass, slug)
@@ -161,27 +198,40 @@ async def async_export_report(hass: HomeAssistant, report_date: py_date) -> list
         trend_hist = history.get(f"sensor.{slug}_trend", [])
         state_hist = history.get(f"sensor.{slug}_state", [])
         priority_hist = history.get(f"sensor.{slug}_priority", [])
+        sensor_state_hist = history.get(f"sensor.{slug}_sensor_state", [])
 
-        glucose_rows = []
+        rows = []
         for s in glucose_hist:
             ts = s.last_changed
             if ts.tzinfo is None:
                 ts = dt_util.as_local(ts)
-            glucose_rows.append(
+            rows.append(
                 {
                     "timestamp": ts.isoformat(),
                     "glucose": s.state,
                     "trend": _value_at(trend_hist, ts),
                     "state": _value_at(state_hist, ts),
                     "priority": _value_at(priority_hist, ts),
+                    "sensor_state": _value_at(sensor_state_hist, ts),
                     **{k: thresholds[k] for k in _THRESHOLD_KEYS},
                 }
             )
 
+        raw_rows, main_rows = _split_raw_and_main(rows)
+
+        # MAIN file: only valid readings, name unchanged, NO sensor_state column
+        # (redundant — always 6 / empty). This is what gets shared with the customer.
         glucose_file = out / f"{prefix}_{date_str}.csv"
-        fieldnames = ["timestamp", "glucose", "trend", "state", "priority"] + _THRESHOLD_KEYS
-        await hass.async_add_executor_job(_write_csv, glucose_file, glucose_rows, fieldnames)
+        main_fields = ["timestamp", "glucose", "trend", "state", "priority"] + _THRESHOLD_KEYS
+        await hass.async_add_executor_job(_write_csv, glucose_file, main_rows, main_fields)
         written.append(glucose_file)
+
+        # RAW file: every reading (4095→0), with sensor_state right after priority.
+        # Internal record; not shared with the customer.
+        raw_file = out / f"{prefix}_{date_str}_RAW.csv"
+        raw_fields = ["timestamp", "glucose", "trend", "state", "priority", "sensor_state"] + _THRESHOLD_KEYS
+        await hass.async_add_executor_job(_write_csv, raw_file, raw_rows, raw_fields)
+        written.append(raw_file)
 
         events_file = out / f"{prefix}_{date_str}_events.csv"
         event_rows = [

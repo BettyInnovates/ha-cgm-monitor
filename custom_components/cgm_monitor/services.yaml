@@ -93,6 +93,11 @@ export_report:
   name: Export CGM Report
   description: >
     Export glucose history and calendar events to CSV files for all subjects.
+    Per subject two glucose files are written: the main <Name>_<date>.csv with
+    only valid readings (ESP sensor state 6, or any numeric value when there is
+    no state source / Dexcom Share) — this is the one shared with the customer —
+    and <Name>_<date>_RAW.csv with every reading plus a sensor_state column.
+    The 4095 "no value" sentinel is rewritten to 0 in both.
     Files are written to {config_dir}/cgm_reports/.
     Defaults to yesterday if no date is given.
   fields:
