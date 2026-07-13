@@ -68,6 +68,7 @@ from .const import (
     STATE_VERY_HIGH,
     STATE_VERY_LOW,
     CALENDAR_LOADED_KEY,
+    SUBJECT_META_KEY,
     DATE_LOADED_KEY,
     EVENT_SELECT_LOADED_KEY,
     TEXT_LOADED_KEY,
@@ -142,6 +143,14 @@ async def async_setup_platform(
     # while still creating number entities for new sensors added to configuration.yaml.
     sensor_name = config[CONF_NAME]
     hass_config = hass.data.get(DOMAIN, {}).get(CONF_HASS_CONFIG, {})
+
+    # Record per-subject metadata the report export needs. A subject without a
+    # state_sensor (Dexcom Share) has no CalibrationState: its mirror entity is
+    # None → HA stores "unknown", which the export must NOT treat as an invalid
+    # ESP reading. The static "has this subject a state source?" fact lets the
+    # export gate correctly instead of guessing from the recorded string.
+    subject_meta: dict = hass.data.setdefault(DOMAIN, {}).setdefault(SUBJECT_META_KEY, {})
+    subject_meta[sensor_name] = {"has_state_source": bool(config.get(CONF_STATE_SENSOR))}
 
     loaded_numbers: set[str] = hass.data.setdefault(NUMBERS_LOADED_KEY, set())
     if sensor_name not in loaded_numbers:

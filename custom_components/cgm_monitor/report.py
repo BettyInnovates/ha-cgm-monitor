@@ -4,7 +4,7 @@ import csv
 import io
 import logging
 import shutil
-from datetime import date as py_date, datetime, time as py_time
+from datetime import date as py_date, datetime, time as py_time, timedelta
 from pathlib import Path
 
 import aiohttp
@@ -43,12 +43,21 @@ from .const import (
     REPORT_FILE_REPORT,
     REPORT_FILE_TYPES,
     STORES_KEY,
+    SUBJECT_META_KEY,
     UNIT_MG_DL,
 )
 
 _LOGGER = logging.getLogger(__name__)
 
 REPORTS_DIR = "cgm_reports"
+
+# glucose and its trend/state/priority are logged in one update burst, but the
+# attributes land ~1 ms AFTER the glucose reading. A strict "<= glucose ts" join
+# would grab the PREVIOUS reading's values (priority/trend lag one row). Joining a
+# hair forward lets each reading catch its OWN burst. Readings are ~5 min apart, so
+# 2 s never reaches into the next reading. Report-only — the live alarm path in the
+# coordinator is unaffected.
+_JOIN_BURST = timedelta(seconds=2)
 
 _THRESHOLD_KEYS = [
     CONF_CRITICAL_LOW_THRESHOLD,
@@ -124,6 +133,19 @@ def _value_at(history_list: list, target_dt: datetime) -> str:
     return result
 
 
+def _threshold_at(history_list: list, target_dt: datetime, fallback: float) -> float:
+    """Threshold value in effect at target_dt, from the number entity's history.
+
+    Falls back to the current value when the reading predates the entity's recorded
+    history (e.g. the number entity was created after that day) or the recorded state
+    is non-numeric (unknown/unavailable).
+    """
+    try:
+        return float(_value_at(history_list, target_dt))
+    except (ValueError, TypeError):
+        return fallback
+
+
 def _write_csv(path: Path, rows: list[dict], fieldnames: list[str]) -> None:
     with open(path, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames, extrasaction="ignore")
@@ -165,6 +187,23 @@ def _split_raw_and_main(rows: list[dict]) -> tuple[list[dict], list[dict]]:
     return raw_rows, main_rows
 
 
+def _dedup_by_timestamp(rows: list[dict]) -> list[dict]:
+    """Drop rows whose timestamp was already seen (keep the first).
+
+    After rounding to whole seconds two readings can collapse onto the same second;
+    this keeps the timestamps unique.
+    """
+    seen: set[str] = set()
+    out: list[dict] = []
+    for r in rows:
+        ts = r.get("timestamp", "")
+        if ts in seen:
+            continue
+        seen.add(ts)
+        out.append(r)
+    return out
+
+
 # ── Export ─────────────────────────────────────────────────────────────────────
 
 
@@ -178,11 +217,18 @@ async def async_export_report(hass: HomeAssistant, report_date: py_date) -> list
     start_dt = dt_util.as_local(datetime.combine(report_date, py_time.min))
     end_dt = dt_util.as_local(datetime.combine(report_date, py_time.max))
     stores: dict = hass.data.get(DOMAIN, {}).get(STORES_KEY, {})
+    subject_meta: dict = hass.data.get(DOMAIN, {}).get(SUBJECT_META_KEY, {})
     written: list[Path] = []
 
     for subject_name, store in stores.items():
         slug = slugify(subject_name)
         prefix = _file_prefix(subject_name)
+
+        # A subject without a state source (Dexcom Share) has no CalibrationState;
+        # its mirror entity records "unknown", which is_valid_reading would wrongly
+        # reject. Leave sensor_state empty for those so every numeric reading counts
+        # as valid (like the ESP state==6 gate does for state-backed subjects).
+        has_state_source = subject_meta.get(subject_name, {}).get("has_state_source", True)
 
         entity_ids = [
             f"sensor.{slug}",
@@ -190,34 +236,49 @@ async def async_export_report(hass: HomeAssistant, report_date: py_date) -> list
             f"sensor.{slug}_state",
             f"sensor.{slug}_priority",
             f"sensor.{slug}_sensor_state",
+            *(f"number.{slug}_{key}" for key in _THRESHOLD_KEYS),
         ]
         history = await _async_get_history(hass, entity_ids, start_dt, end_dt)
-        thresholds = _get_thresholds(hass, slug)
+        # Current threshold values — only a fallback for readings older than the
+        # number entity's recorded history (e.g. entity created after that day).
+        thresholds_now = _get_thresholds(hass, slug)
 
         glucose_hist = history.get(f"sensor.{slug}", [])
         trend_hist = history.get(f"sensor.{slug}_trend", [])
         state_hist = history.get(f"sensor.{slug}_state", [])
         priority_hist = history.get(f"sensor.{slug}_priority", [])
         sensor_state_hist = history.get(f"sensor.{slug}_sensor_state", [])
+        threshold_hist = {key: history.get(f"number.{slug}_{key}", []) for key in _THRESHOLD_KEYS}
 
         rows = []
         for s in glucose_hist:
             ts = s.last_changed
             if ts.tzinfo is None:
                 ts = dt_util.as_local(ts)
+            # Join a hair forward so each reading gets its own burst (lag fix), and
+            # emit the timestamp in whole seconds so glucose and its priority share
+            # the same second and line up.
+            join = ts + _JOIN_BURST
             rows.append(
                 {
-                    "timestamp": ts.isoformat(),
+                    "timestamp": ts.isoformat(timespec="seconds"),
                     "glucose": s.state,
-                    "trend": _value_at(trend_hist, ts),
-                    "state": _value_at(state_hist, ts),
-                    "priority": _value_at(priority_hist, ts),
-                    "sensor_state": _value_at(sensor_state_hist, ts),
-                    **{k: thresholds[k] for k in _THRESHOLD_KEYS},
+                    "trend": _value_at(trend_hist, join),
+                    "state": _value_at(state_hist, join),
+                    "priority": _value_at(priority_hist, join),
+                    "sensor_state": _value_at(sensor_state_hist, join) if has_state_source else "",
+                    **{
+                        k: _threshold_at(threshold_hist[k], join, thresholds_now[k])
+                        for k in _THRESHOLD_KEYS
+                    },
                 }
             )
 
         raw_rows, main_rows = _split_raw_and_main(rows)
+        # Two readings can round onto the same whole second; keep the first of each
+        # so the second-precision timestamps stay unique.
+        raw_rows = _dedup_by_timestamp(raw_rows)
+        main_rows = _dedup_by_timestamp(main_rows)
 
         # MAIN file: only valid readings, name unchanged, NO sensor_state column
         # (redundant — always 6 / empty). This is what gets shared with the customer.

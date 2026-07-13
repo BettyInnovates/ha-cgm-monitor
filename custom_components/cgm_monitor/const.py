@@ -201,6 +201,9 @@ TIME_LOADED_KEY = f"{DOMAIN}_time_loaded"
 
 STORES_KEY = "stores"
 CALENDARS_KEY = "calendars"
+# Per-subject metadata for the report export (e.g. whether a state source exists).
+# Keyed by subject_name, same key space as STORES_KEY.
+SUBJECT_META_KEY = "subject_meta"
 
 EVENT_TYPES: list[str] = ["Meal", "Snack", "Insulin", "Weighing", "Custom"]
 EVENT_UNITS: list[str] = ["IU", "g Carbs", "kg", "—"]
