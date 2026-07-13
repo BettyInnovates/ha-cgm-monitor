@@ -40,6 +40,7 @@ from .const import (
     REPORT_FILE_EVENTS,
     REPORT_FILE_FULL,
     REPORT_FILE_GLUCOSE,
+    REPORT_FILE_RAW,
     REPORT_FILE_REPORT,
     REPORT_FILE_TYPES,
     STORES_KEY,
@@ -719,6 +720,7 @@ def _collect_upload_files(
             REPORT_FILE_GLUCOSE: glucose_file,
             REPORT_FILE_EVENTS: out / f"{prefix}_{date_str}_events.csv",
             REPORT_FILE_FULL: out / f"{prefix}_{date_str}_full.csv",
+            REPORT_FILE_RAW: out / f"{prefix}_{date_str}_RAW.csv",
         }
         for ftype, path in per_subject.items():
             if ftype in file_types and path.exists():

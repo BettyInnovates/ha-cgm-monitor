@@ -173,9 +173,10 @@ upload_report:
     files:
       name: Files
       description: >
-        Which artefacts to bundle into the ZIP. glucose = glucose CSV,
-        events = events CSV, full = glucose+events merged CSV, report = HTML report.
-        Defaults to glucose only.
+        Which artefacts to bundle into the ZIP. glucose = valid-only glucose CSV
+        (customer file), events = events CSV, full = glucose+events merged CSV,
+        report = HTML report, raw = every reading + sensor_state column (internal
+        archive; NOT for the customer). Defaults to glucose only.
       required: false
       selector:
         select:
@@ -185,6 +186,7 @@ upload_report:
             - events
             - full
             - report
+            - raw
     folder:
       name: Subfolder
       description: >

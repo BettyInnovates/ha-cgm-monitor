@@ -239,6 +239,7 @@ REPORT_FILE_GLUCOSE = "glucose"
 REPORT_FILE_EVENTS = "events"
 REPORT_FILE_FULL = "full"      # glucose + events merged
 REPORT_FILE_REPORT = "report"  # combined HTML report
+REPORT_FILE_RAW = "raw"        # every reading + sensor_state column (internal archive)
 
 # Canonical order — also defines how the ZIP name tag is assembled.
 REPORT_FILE_TYPES: list[str] = [
@@ -246,6 +247,7 @@ REPORT_FILE_TYPES: list[str] = [
     REPORT_FILE_EVENTS,
     REPORT_FILE_FULL,
     REPORT_FILE_REPORT,
+    REPORT_FILE_RAW,
 ]
 
 # ── Notification configuration ────────────────────────────────────────────────
