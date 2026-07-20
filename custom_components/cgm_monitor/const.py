@@ -206,7 +206,11 @@ CALENDARS_KEY = "calendars"
 SUBJECT_META_KEY = "subject_meta"
 
 EVENT_TYPES: list[str] = ["Meal", "Snack", "Insulin", "Weighing", "Custom"]
-EVENT_UNITS: list[str] = ["IU", "g Carbs", "kg", "—"]
+EVENT_UNITS: list[str] = ["IU", "µL", "g Carbs", "kg", "—"]
+
+# Event types the customer receives in the MAIN events CSV. Everything else
+# (Weighing, Custom, …) is kept only in the internal RAW events archive.
+CUSTOMER_EVENT_TYPES: list[str] = ["Meal", "Snack", "Insulin"]
 
 CONF_EVENT_SUBJECT = "subject"
 CONF_EVENT_DATE = "date"
@@ -240,6 +244,7 @@ REPORT_FILE_EVENTS = "events"
 REPORT_FILE_FULL = "full"      # glucose + events merged
 REPORT_FILE_REPORT = "report"  # combined HTML report
 REPORT_FILE_RAW = "raw"        # every reading + sensor_state column (internal archive)
+REPORT_FILE_EVENTS_RAW = "events_raw"  # every event + initials/uid (internal archive)
 
 # Canonical order — also defines how the ZIP name tag is assembled.
 REPORT_FILE_TYPES: list[str] = [
@@ -248,6 +253,7 @@ REPORT_FILE_TYPES: list[str] = [
     REPORT_FILE_FULL,
     REPORT_FILE_REPORT,
     REPORT_FILE_RAW,
+    REPORT_FILE_EVENTS_RAW,
 ]
 
 # ── Notification configuration ────────────────────────────────────────────────

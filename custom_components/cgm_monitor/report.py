@@ -24,7 +24,9 @@ from .const import (
     CONF_EVENT_NOTE,
     CONF_EVENT_START,
     CONF_EVENT_TYPE,
+    CONF_EVENT_UID,
     CONF_EVENT_UNIT,
+    CUSTOMER_EVENT_TYPES,
     CONF_HIGH_THRESHOLD,
     CONF_LOW_THRESHOLD,
     CONF_VERY_HIGH_THRESHOLD,
@@ -38,6 +40,7 @@ from .const import (
     GLUCOSE_SENTINEL,
     is_valid_reading,
     REPORT_FILE_EVENTS,
+    REPORT_FILE_EVENTS_RAW,
     REPORT_FILE_FULL,
     REPORT_FILE_GLUCOSE,
     REPORT_FILE_RAW,
@@ -208,6 +211,19 @@ def _dedup_by_timestamp(rows: list[dict]) -> list[dict]:
 # ── Export ─────────────────────────────────────────────────────────────────────
 
 
+def _clean_event_ts(raw: str) -> str:
+    """Normalise a stored event start to whole-second local ISO (like glucose)."""
+    if not raw:
+        return ""
+    try:
+        ts = datetime.fromisoformat(raw)
+    except ValueError:
+        return raw
+    if ts.tzinfo is None:
+        ts = dt_util.as_local(ts)
+    return ts.isoformat(timespec="seconds")
+
+
 async def async_export_report(hass: HomeAssistant, report_date: py_date) -> list[Path]:
     """Export glucose history and calendar events to CSV for every subject."""
     out = Path(hass.config.config_dir) / REPORTS_DIR / report_date.isoformat()
@@ -295,23 +311,41 @@ async def async_export_report(hass: HomeAssistant, report_date: py_date) -> list
         await hass.async_add_executor_job(_write_csv, raw_file, raw_rows, raw_fields)
         written.append(raw_file)
 
+        # Events, split like glucose: MAIN is shared with the customer, RAW is the
+        # internal archive. Same column order in both (timestamp, type, dose, unit,
+        # note), plus initials + uid only in RAW. Timestamps in whole seconds to
+        # match the glucose CSV.
+        event_rows = []
+        for e in store.get_events_in_range(start_dt, end_dt):
+            dose = e.get(CONF_EVENT_DOSE)
+            event_rows.append(
+                {
+                    "timestamp": _clean_event_ts(e.get(CONF_EVENT_START, "")),
+                    "type": e.get(CONF_EVENT_TYPE, ""),
+                    "dose": dose if dose is not None else "",
+                    "unit": e.get(CONF_EVENT_UNIT, ""),
+                    "note": e.get(CONF_EVENT_NOTE, ""),
+                    "initials": e.get(CONF_EVENT_INITIALS, ""),
+                    "uid": e.get(CONF_EVENT_UID, ""),
+                }
+            )
+
+        # MAIN: only customer-relevant types, WITHOUT initials.
         events_file = out / f"{prefix}_{date_str}_events.csv"
-        event_rows = [
-            {
-                "timestamp": e.get(CONF_EVENT_START, ""),
-                "type": e.get(CONF_EVENT_TYPE, ""),
-                "initials": e.get(CONF_EVENT_INITIALS, ""),
-                "unit": e.get(CONF_EVENT_UNIT, ""),
-                "dose": e.get(CONF_EVENT_DOSE, ""),
-                "note": e.get(CONF_EVENT_NOTE, ""),
-            }
-            for e in store.get_events_in_range(start_dt, end_dt)
-        ]
+        main_events = [r for r in event_rows if r["type"] in CUSTOMER_EVENT_TYPES]
         await hass.async_add_executor_job(
-            _write_csv, events_file, event_rows,
-            ["timestamp", "type", "initials", "unit", "dose", "note"],
+            _write_csv, events_file, main_events,
+            ["timestamp", "type", "dose", "unit", "note"],
         )
         written.append(events_file)
+
+        # RAW: every event, with initials + uid for internal control/correction.
+        events_raw_file = out / f"{prefix}_{date_str}_events_RAW.csv"
+        await hass.async_add_executor_job(
+            _write_csv, events_raw_file, event_rows,
+            ["timestamp", "type", "dose", "unit", "note", "initials", "uid"],
+        )
+        written.append(events_raw_file)
 
     _LOGGER.info("CGM Monitor export_report: wrote %d files to %s", len(written), out)
     return written
@@ -721,6 +755,7 @@ def _collect_upload_files(
             REPORT_FILE_EVENTS: out / f"{prefix}_{date_str}_events.csv",
             REPORT_FILE_FULL: out / f"{prefix}_{date_str}_full.csv",
             REPORT_FILE_RAW: out / f"{prefix}_{date_str}_RAW.csv",
+            REPORT_FILE_EVENTS_RAW: out / f"{prefix}_{date_str}_events_RAW.csv",
         }
         for ftype, path in per_subject.items():
             if ftype in file_types and path.exists():

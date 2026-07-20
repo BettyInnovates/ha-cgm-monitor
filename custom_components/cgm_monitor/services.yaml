@@ -47,12 +47,13 @@ add_event:
         text:
     unit:
       name: Unit
-      description: Unit for the dose (IU = insulin units, g Carbs = grams of carbohydrates, kg = kilograms, — = no unit).
+      description: Unit for the dose (IU = insulin units, µL = microliters (test insulin), g Carbs = grams of carbohydrates, kg = kilograms, — = no unit).
       required: false
       selector:
         select:
           options:
             - IU
+            - µL
             - g Carbs
             - kg
             - "—"
@@ -98,6 +99,10 @@ export_report:
     no state source / Dexcom Share) — this is the one shared with the customer —
     and <Name>_<date>_RAW.csv with every reading plus a sensor_state column.
     The 4095 "no value" sentinel is rewritten to 0 in both.
+    Events are split the same way: <Name>_<date>_events.csv (customer) holds only
+    Meal/Snack/Insulin without initials, and <Name>_<date>_events_RAW.csv holds
+    every event with initials + uid for internal control. Columns in both:
+    timestamp, type, dose, unit, note.
     Files are written to {config_dir}/cgm_reports/.
     Defaults to yesterday if no date is given.
   fields:

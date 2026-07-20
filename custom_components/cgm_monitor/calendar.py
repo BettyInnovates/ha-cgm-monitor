@@ -175,14 +175,20 @@ class CgmCalendarEntity(CalendarEntity):
         self.async_write_ha_state()
 
     def _to_calendar_event(self, e: dict) -> CalendarEvent:
+        # Detail order matches the report CSV: dose+unit, note, initials.
         parts = []
-        if e.get(CONF_EVENT_INITIALS):
-            parts.append(e[CONF_EVENT_INITIALS])
         if e.get(CONF_EVENT_DOSE) is not None:
             parts.append(f"{e[CONF_EVENT_DOSE]} {e.get(CONF_EVENT_UNIT, '')}".strip())
         if e.get(CONF_EVENT_NOTE):
             parts.append(e[CONF_EVENT_NOTE])
+        if e.get(CONF_EVENT_INITIALS):
+            parts.append(e[CONF_EVENT_INITIALS])
         description = " | ".join(parts) if parts else None
+
+        # Show everything in the calendar title so entries can be checked at a
+        # glance without opening each one: "Insulin | 3 µL | NovoRapid | AUTO".
+        event_type = e.get(CONF_EVENT_TYPE, "Custom")
+        summary = f"{event_type} | {description}" if description else event_type
 
         start = py_dt.datetime.fromisoformat(e[CONF_EVENT_START])
         if not start.tzinfo:
@@ -193,7 +199,7 @@ class CgmCalendarEntity(CalendarEntity):
             end = dt_util.as_local(end)
 
         return CalendarEvent(
-            summary=e.get(CONF_EVENT_TYPE, "Custom"),
+            summary=summary,
             start=start,
             end=end,
             description=description,
