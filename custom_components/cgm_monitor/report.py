@@ -212,7 +212,12 @@ def _dedup_by_timestamp(rows: list[dict]) -> list[dict]:
 
 
 def _clean_event_ts(raw: str) -> str:
-    """Normalise a stored event start to whole-second local ISO (like glucose)."""
+    """Normalise a stored event start to whole-second UTC ISO (matching glucose).
+
+    Events are stored in local time (+02:00); glucose is written in UTC. Emit events
+    in UTC too so both CSVs share one offset — string-sortable, no 2 h drift in tools
+    that ignore the timezone.
+    """
     if not raw:
         return ""
     try:
@@ -221,7 +226,7 @@ def _clean_event_ts(raw: str) -> str:
         return raw
     if ts.tzinfo is None:
         ts = dt_util.as_local(ts)
-    return ts.isoformat(timespec="seconds")
+    return dt_util.as_utc(ts).isoformat(timespec="seconds")
 
 
 async def async_export_report(hass: HomeAssistant, report_date: py_date) -> list[Path]:
@@ -409,7 +414,10 @@ def _write_full_csv(glucose_file: Path, events_file: Path, full_file: Path) -> N
                 row["source"] = "event"
                 rows.append(row)
 
-    rows.sort(key=lambda r: r.get("timestamp", ""))
+    # Sort by the actual instant, not the raw string: glucose and events now share
+    # the UTC offset, but parsing keeps the order correct even if an offset differs.
+    rows.sort(key=lambda r: dt_util.parse_datetime(r.get("timestamp", "") or "")
+              or dt_util.utc_from_timestamp(0))
     if not rows:
         return
 
@@ -467,6 +475,10 @@ _EVENT_DEFAULT_COLOR = "#e65100"
 
 
 def _tx(dt: datetime) -> float:
+    # The x-axis is the local day 00:00–24:00; timestamps are UTC. Convert to local
+    # first so glucose and events land on the correct local wall-clock position
+    # (otherwise the UTC hour is used and the curve is shifted / wraps around).
+    dt = dt_util.as_local(dt)
     m = dt.hour * 60 + dt.minute + dt.second / 60.0
     return round(_ML + (m / 1440.0) * _PW, 2)
 
