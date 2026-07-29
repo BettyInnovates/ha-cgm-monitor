@@ -14,6 +14,10 @@ READING_SENSOR_STATE = "sensor_state"
 
 CONF_GLUCOSE_SENSOR = "glucose_sensor"
 CONF_TREND_SENSOR = "trend_sensor"
+# Optional display label for reports (and, if ever wired up, the UI). Purely
+# additive: the internal `name` stays the stable key for entity ids, .storage,
+# lookups and the RAW archives. Absent → everything falls back to `name`.
+CONF_DISPLAY_NAME = "display_name"
 CONF_STATE_SENSOR = "state_sensor"  # optional: ESP CalibrationState byte; absent for Dexcom Share
 CONF_CRITICAL_LOW_THRESHOLD = "critical_low_threshold"
 CONF_VERY_LOW_THRESHOLD = "very_low_threshold"
@@ -205,8 +209,8 @@ CALENDARS_KEY = "calendars"
 # Keyed by subject_name, same key space as STORES_KEY.
 SUBJECT_META_KEY = "subject_meta"
 
-EVENT_TYPES: list[str] = ["Meal", "Snack", "Insulin", "Weighing", "Custom"]
-EVENT_UNITS: list[str] = ["IU", "µL", "g Carbs", "kg", "—"]
+EVENT_TYPES: list[str] = ["Insulin", "Snack", "Meal", "Weighing", "Custom"]
+EVENT_UNITS: list[str] = ["IU", "g Carbs", "kg", "—", "µL", "ml", "nmol/kg"]
 
 # Event types the customer receives in the MAIN events CSV. Everything else
 # (Weighing, Custom, …) is kept only in the internal RAW events archive.

@@ -39,6 +39,7 @@ from .const import (
     SENSOR_STATE_CAT_WARMUP,
     NO_VALUE_ESCALATION_SECONDS,
     CONF_CRITICAL_LOW_THRESHOLD,
+    CONF_DISPLAY_NAME,
     CONF_GLUCOSE_SENSOR,
     CONF_HASS_CONFIG,
     CONF_HIGH_THRESHOLD,
@@ -90,6 +91,7 @@ _PRIORITY_OVERRIDE_SCHEMA = vol.Schema(
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
     {
         vol.Required(CONF_NAME): cv.string,
+        vol.Optional(CONF_DISPLAY_NAME): cv.string,
         vol.Required(CONF_GLUCOSE_SENSOR): cv.entity_id,
         vol.Required(CONF_TREND_SENSOR): cv.entity_id,
         vol.Optional(CONF_STATE_SENSOR): cv.entity_id,
@@ -150,7 +152,12 @@ async def async_setup_platform(
     # ESP reading. The static "has this subject a state source?" fact lets the
     # export gate correctly instead of guessing from the recorded string.
     subject_meta: dict = hass.data.setdefault(DOMAIN, {}).setdefault(SUBJECT_META_KEY, {})
-    subject_meta[sensor_name] = {"has_state_source": bool(config.get(CONF_STATE_SENSOR))}
+    subject_meta[sensor_name] = {
+        "has_state_source": bool(config.get(CONF_STATE_SENSOR)),
+        # Configured display label (None if unset). The report uses it for the
+        # customer-facing file names/titles; None → fall back to the internal name.
+        "display_name": config.get(CONF_DISPLAY_NAME),
+    }
 
     loaded_numbers: set[str] = hass.data.setdefault(NUMBERS_LOADED_KEY, set())
     if sensor_name not in loaded_numbers:

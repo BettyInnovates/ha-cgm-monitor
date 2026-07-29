@@ -3,6 +3,7 @@
 import csv
 import io
 import logging
+import re
 import shutil
 from datetime import date as py_date, datetime, time as py_time, timedelta
 from pathlib import Path
@@ -89,6 +90,48 @@ def _out_dir(hass: HomeAssistant, report_date: py_date) -> Path:
 
 def _file_prefix(subject_name: str) -> str:
     return subject_name.replace(" ", "_")
+
+
+def _display_label(subject_name: str, display_raw: str | None) -> str:
+    """Human label for chart titles / HTML headings (display_name or the name)."""
+    return display_raw or subject_name
+
+
+def _subject_files(
+    out: Path, date_str: str, subject_name: str, display_raw: str | None
+) -> dict[str, Path | None]:
+    """All report output paths for one subject — the single source of truth so
+    export, generate and upload always agree on every name.
+
+    Naming rules (only differ from the internal name when display_name is set):
+      • customer files (glucose MAIN, full, svg)  → display_name
+      • internal archives (glucose RAW, events RAW) → internal `name` (stable key)
+      • customer events MAIN → per-animal: display_name with a trailing
+        "_Sensor…" segment stripped, and ONLY for the main sensor. Backups have
+        no event input form, so they get no customer events file (→ None).
+    Without display_name everything falls back to the old per-subject naming.
+    """
+    internal = _file_prefix(subject_name)
+    display = _file_prefix(display_raw) if display_raw else internal
+
+    files: dict[str, Path | None] = {
+        "glucose": out / f"{display}_{date_str}.csv",
+        "glucose_raw": out / f"{internal}_{date_str}_RAW.csv",
+        "events_raw": out / f"{internal}_{date_str}_events_RAW.csv",
+        "full": out / f"{display}_{date_str}_full.csv",
+        "svg": out / f"{display}_{date_str}.svg",
+    }
+
+    if display_raw:
+        if internal.endswith("_backup"):
+            files["events"] = None
+        else:
+            event_prefix = re.sub(r"_Sensor[^_]*$", "", display)
+            files["events"] = out / f"{event_prefix}_{date_str}_events.csv"
+    else:
+        files["events"] = out / f"{internal}_{date_str}_events.csv"
+
+    return files
 
 
 def _get_thresholds(hass: HomeAssistant, slug: str) -> dict[str, float]:
@@ -244,7 +287,8 @@ async def async_export_report(hass: HomeAssistant, report_date: py_date) -> list
 
     for subject_name, store in stores.items():
         slug = slugify(subject_name)
-        prefix = _file_prefix(subject_name)
+        display_raw = subject_meta.get(subject_name, {}).get("display_name")
+        files = _subject_files(out, date_str, subject_name, display_raw)
 
         # A subject without a state source (Dexcom Share) has no CalibrationState;
         # its mirror entity records "unknown", which is_valid_reading would wrongly
@@ -302,16 +346,16 @@ async def async_export_report(hass: HomeAssistant, report_date: py_date) -> list
         raw_rows = _dedup_by_timestamp(raw_rows)
         main_rows = _dedup_by_timestamp(main_rows)
 
-        # MAIN file: only valid readings, name unchanged, NO sensor_state column
-        # (redundant — always 6 / empty). This is what gets shared with the customer.
-        glucose_file = out / f"{prefix}_{date_str}.csv"
+        # MAIN file: only valid readings, NO sensor_state column (redundant —
+        # always 6 / empty). This is what gets shared with the customer.
+        glucose_file = files["glucose"]
         main_fields = ["timestamp", "glucose", "trend", "state", "priority"] + _THRESHOLD_KEYS
         await hass.async_add_executor_job(_write_csv, glucose_file, main_rows, main_fields)
         written.append(glucose_file)
 
         # RAW file: every reading (4095→0), with sensor_state right after priority.
-        # Internal record; not shared with the customer.
-        raw_file = out / f"{prefix}_{date_str}_RAW.csv"
+        # Internal record (keeps the internal name); not shared with the customer.
+        raw_file = files["glucose_raw"]
         raw_fields = ["timestamp", "glucose", "trend", "state", "priority", "sensor_state"] + _THRESHOLD_KEYS
         await hass.async_add_executor_job(_write_csv, raw_file, raw_rows, raw_fields)
         written.append(raw_file)
@@ -335,17 +379,21 @@ async def async_export_report(hass: HomeAssistant, report_date: py_date) -> list
                 }
             )
 
-        # MAIN: only customer-relevant types, WITHOUT initials.
-        events_file = out / f"{prefix}_{date_str}_events.csv"
-        main_events = [r for r in event_rows if r["type"] in CUSTOMER_EVENT_TYPES]
-        await hass.async_add_executor_job(
-            _write_csv, events_file, main_events,
-            ["timestamp", "type", "dose", "unit", "note"],
-        )
-        written.append(events_file)
+        # MAIN: only customer-relevant types, WITHOUT initials. Per-animal file
+        # (main sensor only) — backups have no event form, so files["events"] is
+        # None for them and no customer events file is written.
+        events_file = files["events"]
+        if events_file is not None:
+            main_events = [r for r in event_rows if r["type"] in CUSTOMER_EVENT_TYPES]
+            await hass.async_add_executor_job(
+                _write_csv, events_file, main_events,
+                ["timestamp", "type", "dose", "unit", "note"],
+            )
+            written.append(events_file)
 
         # RAW: every event, with initials + uid for internal control/correction.
-        events_raw_file = out / f"{prefix}_{date_str}_events_RAW.csv"
+        # Kept per subject under the internal name (backups included).
+        events_raw_file = files["events_raw"]
         await hass.async_add_executor_job(
             _write_csv, events_raw_file, event_rows,
             ["timestamp", "type", "dose", "unit", "note", "initials", "uid"],
@@ -364,51 +412,54 @@ async def async_generate_report(hass: HomeAssistant, report_date: py_date) -> Pa
     out = _out_dir(hass, report_date)
     date_str = report_date.isoformat()
     stores: dict = hass.data.get(DOMAIN, {}).get(STORES_KEY, {})
-    subject_names = list(stores.keys())
+    subject_meta: dict = hass.data.get(DOMAIN, {}).get(SUBJECT_META_KEY, {})
+    # name → configured display_name (None if unset), preserving config order.
+    subjects = {name: subject_meta.get(name, {}).get("display_name") for name in stores}
     html_path = out / f"CGM_Report_{date_str}.html"
 
-    await hass.async_add_executor_job(_generate_report_files, subject_names, out, date_str, html_path)
+    await hass.async_add_executor_job(_generate_report_files, subjects, out, date_str, html_path)
     _LOGGER.info("CGM Monitor generate_report: wrote report to %s", html_path)
     return html_path
 
 
 def _generate_report_files(
-    subject_names: list[str],
+    subjects: dict[str, str | None],
     out: Path,
     date_str: str,
     html_path: Path,
 ) -> None:
     subject_sections = []
 
-    for subject_name in subject_names:
-        prefix = _file_prefix(subject_name)
-        glucose_file = out / f"{prefix}_{date_str}.csv"
-        events_file = out / f"{prefix}_{date_str}_events.csv"
-        full_file = out / f"{prefix}_{date_str}_full.csv"
+    for subject_name, display_raw in subjects.items():
+        files = _subject_files(out, date_str, subject_name, display_raw)
+        label = _display_label(subject_name, display_raw)
+        glucose_file = files["glucose"]
+        events_file = files["events"]  # None for backups → full = glucose only
+        full_file = files["full"]
 
         _write_full_csv(glucose_file, events_file, full_file)
 
         glucose_data, thresholds = _load_glucose_csv(glucose_file)
-        events = _load_events_csv(events_file)
-        svg = _svg_chart(subject_name, glucose_data, events, thresholds, date_str)
+        events = _load_events_csv(events_file) if events_file else []
+        svg = _svg_chart(label, glucose_data, events, thresholds, date_str)
 
-        svg_file = out / f"{prefix}_{date_str}.svg"
+        svg_file = files["svg"]
         svg_file.write_text(svg, encoding="utf-8")
 
-        subject_sections.append((subject_name, svg, full_file.name))
+        subject_sections.append((label, svg, full_file.name))
 
     html = _build_html(date_str, subject_sections)
     html_path.write_text(html, encoding="utf-8")
 
 
-def _write_full_csv(glucose_file: Path, events_file: Path, full_file: Path) -> None:
+def _write_full_csv(glucose_file: Path, events_file: Path | None, full_file: Path) -> None:
     rows = []
     if glucose_file.exists():
         with open(glucose_file, newline="", encoding="utf-8") as f:
             for row in csv.DictReader(f):
                 row["source"] = "glucose"
                 rows.append(row)
-    if events_file.exists():
+    if events_file is not None and events_file.exists():
         with open(events_file, newline="", encoding="utf-8") as f:
             for row in csv.DictReader(f):
                 row["source"] = "event"
@@ -675,6 +726,7 @@ async def async_send_report(
     out = _out_dir(hass, report_date)
     date_str = report_date.isoformat()
     stores: dict = hass.data.get(DOMAIN, {}).get(STORES_KEY, {})
+    subject_meta: dict = hass.data.get(DOMAIN, {}).get(SUBJECT_META_KEY, {})
 
     # HA's SMTP component validates attachment paths against allowlist_external_dirs.
     # Add the reports root so all dated subfolders are accepted.
@@ -690,10 +742,11 @@ async def async_send_report(
         attachments.append(str(html_path))
 
     for subject_name in stores:
-        prefix = _file_prefix(subject_name)
-        for suffix in ("", "_events", "_full"):
-            f = out / f"{prefix}_{date_str}{suffix}.csv"
-            if f.exists():
+        display_raw = subject_meta.get(subject_name, {}).get("display_name")
+        subj = _subject_files(out, date_str, subject_name, display_raw)
+        for key in ("glucose", "events", "full"):
+            f = subj[key]
+            if f is not None and f.exists():
                 attachments.append(str(f))
 
     if not attachments:
@@ -741,19 +794,20 @@ def _has_glucose_data(csv_file: Path) -> bool:
 def _collect_upload_files(
     out: Path,
     date_str: str,
-    subject_names: list[str],
+    subjects: dict[str, str | None],
     file_types: list[str],
 ) -> list[Path]:
     """Gather the files to bundle into one ZIP for the given subjects and file types.
 
-    Per-subject CSVs (glucose/events/full) are added for every subject; the HTML
-    report is combined across all subjects and therefore added only once.
+    `subjects` maps each subject name to its configured display_name (None if
+    unset). Per-subject CSVs (glucose/events/full) are added for every subject;
+    the HTML report is combined across all subjects and therefore added only once.
     """
     files: list[Path] = []
 
-    for subject_name in subject_names:
-        prefix = _file_prefix(subject_name)
-        glucose_file = out / f"{prefix}_{date_str}.csv"
+    for subject_name, display_raw in subjects.items():
+        subj = _subject_files(out, date_str, subject_name, display_raw)
+        glucose_file = subj["glucose"]
 
         # Only log when a subject has NO real glucose data at all (few values is normal).
         if REPORT_FILE_GLUCOSE in file_types and glucose_file.exists() and not _has_glucose_data(glucose_file):
@@ -764,13 +818,13 @@ def _collect_upload_files(
 
         per_subject = {
             REPORT_FILE_GLUCOSE: glucose_file,
-            REPORT_FILE_EVENTS: out / f"{prefix}_{date_str}_events.csv",
-            REPORT_FILE_FULL: out / f"{prefix}_{date_str}_full.csv",
-            REPORT_FILE_RAW: out / f"{prefix}_{date_str}_RAW.csv",
-            REPORT_FILE_EVENTS_RAW: out / f"{prefix}_{date_str}_events_RAW.csv",
+            REPORT_FILE_EVENTS: subj["events"],
+            REPORT_FILE_FULL: subj["full"],
+            REPORT_FILE_RAW: subj["glucose_raw"],
+            REPORT_FILE_EVENTS_RAW: subj["events_raw"],
         }
         for ftype, path in per_subject.items():
-            if ftype in file_types and path.exists():
+            if ftype in file_types and path is not None and path.exists():
                 files.append(path)
 
     if REPORT_FILE_REPORT in file_types:
@@ -798,6 +852,7 @@ async def async_upload_report(
     out = _out_dir(hass, report_date)
     date_str = report_date.isoformat()
     stores: dict = hass.data.get(DOMAIN, {}).get(STORES_KEY, {})
+    subject_meta: dict = hass.data.get(DOMAIN, {}).get(SUBJECT_META_KEY, {})
 
     file_types = files or [REPORT_FILE_GLUCOSE]
 
@@ -811,7 +866,9 @@ async def async_upload_report(
     else:
         subject_names = list(stores.keys())
 
-    upload_files = _collect_upload_files(out, date_str, subject_names, file_types)
+    # name → configured display_name (None if unset) for the selected subjects.
+    subject_map = {name: subject_meta.get(name, {}).get("display_name") for name in subject_names}
+    upload_files = _collect_upload_files(out, date_str, subject_map, file_types)
     if not upload_files:
         _LOGGER.warning(
             "CGM Monitor upload_report: nothing to upload for %s (files=%s, subjects=%s) — "
