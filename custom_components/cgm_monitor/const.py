@@ -209,12 +209,24 @@ CALENDARS_KEY = "calendars"
 # Keyed by subject_name, same key space as STORES_KEY.
 SUBJECT_META_KEY = "subject_meta"
 
-EVENT_TYPES: list[str] = ["Insulin", "Snack", "Meal", "Weighing", "Custom"]
+EVENT_TYPES: list[str] = ["Insulin", "Test Insulin", "Snack", "Meal", "Weighing", "Custom"]
 EVENT_UNITS: list[str] = ["IU", "g Carbs", "kg", "—", "µL", "ml", "nmol/kg"]
+
+# Default unit pre-selected when an event type is chosen on the form. Only a
+# convenience pre-fill — the user can still switch to any other EVENT_UNITS
+# entry afterwards (e.g. Insulin to µL for test insulin).
+EVENT_TYPE_DEFAULT_UNIT: dict[str, str] = {
+    "Insulin": "IU",
+    "Test Insulin": "nmol/kg",
+    "Snack": "g Carbs",
+    "Meal": "g Carbs",
+    "Weighing": "kg",
+    "Custom": "—",
+}
 
 # Event types the customer receives in the MAIN events CSV. Everything else
 # (Weighing, Custom, …) is kept only in the internal RAW events archive.
-CUSTOMER_EVENT_TYPES: list[str] = ["Meal", "Snack", "Insulin"]
+CUSTOMER_EVENT_TYPES: list[str] = ["Meal", "Snack", "Insulin", "Test Insulin"]
 
 CONF_EVENT_SUBJECT = "subject"
 CONF_EVENT_DATE = "date"

@@ -73,7 +73,7 @@ class CgmEventDoseNumber(RestoreEntity, NumberEntity):
     _attr_mode = NumberMode.BOX
     _attr_native_step = 0.1
     _attr_native_min_value = 0.0
-    _attr_native_max_value = 100.0
+    _attr_native_max_value = 9999.9
     _attr_should_poll = False
 
     def __init__(self, sensor_name: str) -> None:

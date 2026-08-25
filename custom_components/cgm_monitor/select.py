@@ -8,7 +8,7 @@ from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
 from homeassistant.util import slugify
 
-from .const import EVENT_TYPES, EVENT_UNITS
+from .const import EVENT_TYPE_DEFAULT_UNIT, EVENT_TYPES, EVENT_UNITS
 
 
 async def async_setup_platform(
@@ -22,9 +22,10 @@ async def async_setup_platform(
         return
 
     sensor_name = discovery_info[CONF_NAME]
+    unit_select = CgmEventUnitSelect(sensor_name)
     async_add_entities([
-        CgmEventTypeSelect(sensor_name),
-        CgmEventUnitSelect(sensor_name),
+        CgmEventTypeSelect(sensor_name, unit_select),
+        unit_select,
     ])
 
 
@@ -34,10 +35,11 @@ class CgmEventTypeSelect(RestoreEntity, SelectEntity):
     _attr_should_poll = False
     _attr_options = EVENT_TYPES
 
-    def __init__(self, sensor_name: str) -> None:
+    def __init__(self, sensor_name: str, unit_select: "CgmEventUnitSelect") -> None:
         self._attr_name = f"{sensor_name} Event Type"
         self._attr_unique_id = f"{slugify(sensor_name)}_event_type"
         self._attr_current_option = EVENT_TYPES[0]
+        self._unit_select = unit_select
 
     async def async_added_to_hass(self) -> None:
         await super().async_added_to_hass()
@@ -48,6 +50,9 @@ class CgmEventTypeSelect(RestoreEntity, SelectEntity):
     async def async_select_option(self, option: str) -> None:
         self._attr_current_option = option
         self.async_write_ha_state()
+        # Pre-fill the matching unit for this type (user can still override).
+        if (default_unit := EVENT_TYPE_DEFAULT_UNIT.get(option)) is not None:
+            await self._unit_select.async_select_option(default_unit)
 
 
 class CgmEventUnitSelect(RestoreEntity, SelectEntity):
