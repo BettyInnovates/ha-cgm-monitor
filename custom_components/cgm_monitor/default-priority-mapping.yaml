@@ -9,13 +9,13 @@
 # - very_high
 
 # trend:
-# - falling_quickly
-# - falling
-# - falling_slightly
-# - steady
-# - rising_slightly
-# - rising
-# - rising_quickly
+# - falling_quickly: falling more than 3 mg/dl each minute
+# - falling: falling 2-3 mg/dl each minute
+# - falling_slightly: falling 1-2 mg/dl each minute
+# - steady: changing less than 1 mg/dl each minute
+# - rising_slightly: rising 1-2 mg/dl each minute
+# - rising: rising 2-3 mg/dl each minute
+# - rising_quickly: rising more than 3 mg/dl each minute
 
 # priority:
 # - warning
