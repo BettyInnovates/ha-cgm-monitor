@@ -842,12 +842,14 @@ async def async_upload_report(
     subjects: list[str] | None = None,
     files: list[str] | None = None,
     folder: str | None = None,
+    suffix: str | None = None,
 ) -> list[str]:
     """Bundle the selected report files into ONE AES-256 ZIP and upload it via WebDAV.
 
     One service call produces exactly one ZIP. `subjects` selects which subjects are
     included (default: all configured ones), `files` selects which artefacts go in
-    (default: glucose only), and `folder` is an optional sub-folder created on demand.
+    (default: glucose only), `folder` is an optional sub-folder created on demand and
+    `suffix` is an optional text appended to the ZIP name (e.g. "unverified").
     """
     out = _out_dir(hass, report_date)
     date_str = report_date.isoformat()
@@ -901,6 +903,8 @@ async def async_upload_report(
 
     zip_data = await hass.async_add_executor_job(_create_encrypted_zip, upload_files, zip_password)
     tag = "-".join(t for t in REPORT_FILE_TYPES if t in file_types)
+    if suffix:
+        tag = f"{tag}_{suffix}"
     zip_filename = f"CGM_{date_str}_{tag}.zip"
     upload_url = f"{folder_url}/{zip_filename}"
 

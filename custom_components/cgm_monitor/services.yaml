@@ -201,6 +201,15 @@ upload_report:
       example: Auftraggeber
       selector:
         text:
+    suffix:
+      name: Name suffix
+      description: >
+        Optional text appended to the ZIP name, e.g. "unverified" gives
+        CGM_<date>_events_unverified.zip. Leave empty for the normal name.
+      required: false
+      example: unverified
+      selector:
+        text:
     date:
       name: Date
       description: Date to upload in YYYY-MM-DD format. Defaults to yesterday.

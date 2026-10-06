@@ -254,6 +254,7 @@ CONF_REPORT_ZIP_PASSWORD = "zip_password"
 CONF_REPORT_SUBJECTS = "subjects"
 CONF_REPORT_FILES = "files"
 CONF_REPORT_FOLDER = "folder"
+CONF_REPORT_SUFFIX = "suffix"
 
 REPORT_FILE_GLUCOSE = "glucose"
 REPORT_FILE_EVENTS = "events"

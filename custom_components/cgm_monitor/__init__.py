@@ -34,6 +34,7 @@ from .const import (
     CONF_REPORT_FILES,
     CONF_REPORT_FOLDER,
     CONF_REPORT_SUBJECTS,
+    CONF_REPORT_SUFFIX,
     CONF_REPORT_ZIP_PASSWORD,
     DOMAIN,
     REPORT_FILE_TYPES,
@@ -116,6 +117,7 @@ _UPLOAD_REPORT_SCHEMA = vol.Schema(
         vol.Optional(CONF_REPORT_SUBJECTS): vol.All(cv.ensure_list, [cv.string]),
         vol.Optional(CONF_REPORT_FILES): vol.All(cv.ensure_list, [vol.In(REPORT_FILE_TYPES)]),
         vol.Optional(CONF_REPORT_FOLDER): cv.string,
+        vol.Optional(CONF_REPORT_SUFFIX): cv.string,
         **_REPORT_DATE_SCHEMA,
     }
 )
@@ -271,6 +273,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
             subjects=call.data.get(CONF_REPORT_SUBJECTS),
             files=call.data.get(CONF_REPORT_FILES),
             folder=call.data.get(CONF_REPORT_FOLDER),
+            suffix=call.data.get(CONF_REPORT_SUFFIX),
         )
 
     hass.services.async_register(DOMAIN, "add_event", handle_add_event, schema=_ADD_EVENT_SCHEMA)

@@ -157,6 +157,20 @@ Each subject gets a calendar entity and a set of helper entities for logging eve
 | `subject` | yes | Subject name |
 | `uid` | yes | Event UID (shown in the calendar event details) |
 
+## Report Upload
+
+**`cgm_monitor.upload_report`** — Bundle report files of one day into ONE AES-256 ZIP and upload it to Nextcloud (WebDAV). Run `export_report` (and `generate_report` for `full`/`report`) first.
+
+| Field | Required | Description |
+|---|---|---|
+| `subjects` | no | Subjects to include. Empty = all. |
+| `files` | no | `glucose`, `events`, `full`, `report`, `raw`, `events_raw`. Default `glucose`. |
+| `folder` | no | Sub-folder under the configured base path, created if missing. |
+| `suffix` | no | Text appended to the ZIP name, e.g. `unverified` → `CGM_<date>_events_unverified.zip`. |
+| `date` | no | `YYYY-MM-DD`. Defaults to yesterday. |
+
+ZIP name: `CGM_<date>_<files>[_<suffix>].zip`.
+
 ## HACS addons
 
 For better UI:
